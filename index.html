@@ -754,6 +754,19 @@
   </style>
 </head>
 <body>
+
+  <style>
+  header { position: relative !important; }
+  .header-fixed-corner {
+    position: absolute !important;
+    top: 15px;    /* ระยะจากขอบบน (ปรับตัวเลขได้) */
+    right: 15px;  /* ระยะจากขอบขวา (ปรับตัวเลขได้) */
+    z-index: 999; /* ลอยอยู่ชั้นบนสุด */
+    font-size: 14px; /* ขนาดตัวอักษร */
+    color: #ffffff;  /* สีข้อความ */
+  }
+</style>
+  
   <header>
     <div class="wrap hero">
       <div>
@@ -766,6 +779,11 @@
         <strong>Machine + Loader + Buffer</strong>
         <span>รองรับการสร้างไลน์ผลิตหลาย Process พร้อม Animation และ Buffer Map</span>
       </div>
+      
+      <div class="header-fixed-corner">
+      Developed by: Boonyarit Chotisatkul
+    </div>
+      
     </div>
   </header>
 
