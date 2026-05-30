@@ -1,0 +1,2793 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flexible Production Line Cycle Time & Buffer Analyzer</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #182235;
+      --muted: #667085;
+      --line: #d9e0ea;
+      --blue: #1f6feb;
+      --blue-dark: #174ea6;
+      --green: #16803c;
+      --yellow: #b7791f;
+      --red: #c62828;
+      --purple: #6f42c1;
+      --orange: #ea580c;
+      --chip: #eef4ff;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at top left, #e8f1ff, transparent 30%), var(--bg);
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 28px 18px 18px;
+      background: linear-gradient(135deg, #172554, #1f6feb 55%, #0f766e);
+      color: white;
+    }
+
+    .wrap {
+      width: min(1460px, calc(100% - 28px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.55fr 0.9fr;
+      gap: 20px;
+      align-items: end;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 4vw, 42px);
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: rgba(255,255,255,0.86);
+      max-width: 980px;
+      font-size: 15px;
+    }
+
+    .hero-card {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: var(--radius);
+      padding: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-card strong { display: block; font-size: 24px; }
+    .hero-card span { color: rgba(255,255,255,0.78); font-size: 13px; }
+
+    main { padding: 22px 0 48px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .span-12 { grid-column: span 12; }
+    .span-8 { grid-column: span 8; }
+    .span-7 { grid-column: span 7; }
+    .span-6 { grid-column: span 6; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+
+    .panel h2, .panel h3 {
+      margin: 0 0 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .panel h2 { font-size: 22px; }
+    .panel h3 { font-size: 18px; }
+
+    .note {
+      margin: 6px 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button, .file-label {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+      box-shadow: 0 8px 16px rgba(31, 111, 235, 0.18);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    button:hover, .file-label:hover { transform: translateY(-1px); background: var(--blue-dark); }
+    button.secondary, .file-label.secondary { background: #edf2f7; color: #243044; box-shadow: none; }
+    button.secondary:hover, .file-label.secondary:hover { background: #dbe4ef; }
+    button.danger { background: #d92d20; }
+    button.danger:hover { background: #b42318; }
+    button.good { background: var(--green); }
+    button.good:hover { background: #11662f; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    input[type="file"] { display: none; }
+
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-weight: 800;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 10px 11px;
+      font-size: 14px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+      transition: border 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.12);
+    }
+
+    input[type="checkbox"] { width: auto; transform: scale(1.1); }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 940px;
+    }
+
+    #machineTable { min-width: 1320px; }
+    #loaderTable { min-width: 780px; }
+    #bufferTable, #machineTypeTable { min-width: 760px; }
+
+    th, td {
+      border-bottom: 1px solid #edf1f6;
+      padding: 10px 10px;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fafc;
+      color: #344054;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover { background: #fbfdff; }
+    td.num, th.num { text-align: right; }
+    td.center, th.center { text-align: center; }
+
+    .small-input { max-width: 120px; padding: 8px 9px; text-align: right; }
+    .name-input { min-width: 112px; padding: 8px 9px; }
+    .process-input { min-width: 92px; padding: 8px 9px; font-weight: 800; }
+    .select-input { min-width: 132px; padding: 8px 9px; }
+    .type-select { min-width: 172px; }
+
+    .parallel-machine-box {
+      min-width: 470px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .parallel-hint {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .parallel-machine-head,
+    .parallel-machine-row {
+      display: grid;
+      grid-template-columns: 34px minmax(130px, 1fr) 100px 100px 92px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .parallel-machine-head {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .parallel-machine-row {
+      padding: 6px;
+      border: 1px solid #edf1f6;
+      border-radius: 12px;
+      background: #fbfdff;
+    }
+
+    .parallel-machine-row .idx {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: var(--blue-dark);
+      font-weight: 900;
+      font-size: 11px;
+    }
+
+    .process-effective {
+      display: block;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    .effective-note {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .count-input { max-width: 86px; text-align: center; font-weight: 900; }
+
+    .icon-btn {
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      box-shadow: none;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--chip);
+      color: var(--blue-dark);
+      white-space: nowrap;
+    }
+
+    .tag.single { background: #ecfdf3; color: #067647; }
+    .tag.parallel { background: #f4f3ff; color: #5925dc; }
+    .tag.loader { background: #fff7ed; color: #c2410c; }
+    .tag.neck { background: #fee4e2; color: #b42318; }
+    .tag.ok { background: #ecfdf3; color: #067647; }
+    .tag.warn { background: #fffaeb; color: #b54708; }
+    .tag.bad { background: #fee4e2; color: #b42318; }
+    .tag.fast { background: #eff8ff; color: #175cd3; }
+    .tag.gray { background: #f2f4f7; color: #475467; }
+    .tag.buffer-high { background: #fee4e2; color: #b42318; }
+    .tag.buffer-medium { background: #fff7ed; color: #c2410c; }
+    .tag.buffer-low { background: #fffaeb; color: #b54708; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      border: 1px solid #e6ecf3;
+      border-radius: 16px;
+      padding: 15px;
+      min-height: 118px;
+    }
+
+    .metric .label { color: var(--muted); font-size: 12px; font-weight: 800; }
+    .metric .value { margin-top: 8px; font-size: 25px; font-weight: 900; letter-spacing: -0.03em; }
+    .metric .sub { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .metric.neck-card { border-color: #fecaca; background: linear-gradient(180deg, #fff7f7, #fff); }
+    .metric.buffer-card { border-color: #fed7aa; background: linear-gradient(180deg, #fff7ed, #ffffff); }
+
+    .alert-box {
+      border-left: 5px solid var(--blue);
+      background: #eff6ff;
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin: 10px 0;
+      color: #1e3a8a;
+    }
+
+    .alert-box.warn { border-left-color: var(--yellow); background: #fffbeb; color: #92400e; }
+    .alert-box.bad { border-left-color: var(--red); background: #fef2f2; color: #991b1b; }
+    .alert-box.good { border-left-color: var(--green); background: #ecfdf3; color: #065f46; }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 176px 1fr 96px;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .bar-track {
+      background: #eef2f7;
+      border-radius: 999px;
+      overflow: hidden;
+      height: 20px;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #1f6feb, #0f766e);
+      min-width: 2px;
+    }
+
+    .bar-fill.neck-fill { background: linear-gradient(90deg, #d92d20, #f79009); }
+
+    .bar-label {
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .recommendations, .buffer-cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .rec-card {
+      border: 1px solid #e6ecf3;
+      border-radius: 14px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .rec-card.buffer-high { border-color: #fda29b; background: #fff7f7; }
+    .rec-card.buffer-medium { border-color: #fed7aa; background: #fff7ed; }
+    .rec-card.buffer-low { border-color: #fedf89; background: #fffbeb; }
+    .rec-card strong { display: block; margin-bottom: 6px; }
+    .rec-card p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .line-animation-panel { overflow: hidden; }
+
+    .line-animation {
+      --anim-duration: 14s;
+      --travel: 1040px;
+      margin-top: 8px;
+      border: 1px solid #d7e1ee;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(31, 111, 235, 0.12), transparent 26%),
+        radial-gradient(circle at 92% 12%, rgba(15, 118, 110, 0.12), transparent 24%),
+        linear-gradient(180deg, #f8fbff, #ffffff);
+      padding: 16px;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .flow-topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+      min-width: var(--flow-min, 1120px);
+    }
+
+    .flow-topline strong { display: block; font-size: 15px; }
+    .flow-topline span { color: var(--muted); font-size: 12px; }
+
+    .flow-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .legend-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .legend-dot::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #d0d5dd;
+    }
+
+    .legend-dot.ok::before { background: #12b76a; }
+    .legend-dot.warn::before { background: #f79009; }
+    .legend-dot.neck::before { background: #d92d20; }
+    .legend-dot.loader::before { background: #6f42c1; }
+    .legend-dot.buffer::before { background: #ea580c; border-radius: 2px; }
+
+    .flow-strip {
+      min-width: var(--flow-min, 1120px);
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      position: relative;
+      padding: 12px 10px 78px;
+    }
+
+    .flow-strip::before {
+      content: "";
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 38px;
+      height: 9px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #d9e0ea, #b8c4d6, #d9e0ea);
+      box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.14);
+    }
+
+    .line-animation.loader-neck .flow-strip::before {
+      background: linear-gradient(90deg, #fecaca, #d92d20, #fecaca);
+      box-shadow: 0 0 0 4px rgba(217, 45, 32, 0.08), inset 0 1px 3px rgba(15, 23, 42, 0.14);
+    }
+
+    .flow-stage {
+      position: relative;
+      z-index: 2;
+      width: 160px;
+      min-width: 160px;
+      min-height: 178px;
+      border: 2px solid #d7e1ee;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
+      padding: 11px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .flow-stage:hover { transform: translateY(-2px); box-shadow: 0 12px 22px rgba(15, 23, 42, 0.11); }
+    .flow-stage.ok { border-color: #abefc6; }
+    .flow-stage.warn, .flow-stage.bad { border-color: #fedf89; background: #fffcf5; }
+
+    .flow-stage.neck {
+      border-color: #fda29b;
+      background: linear-gradient(180deg, #fff5f5, #ffffff);
+      animation: neckPulse 1.2s ease-in-out infinite;
+    }
+
+    .flow-stage-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .flow-stage-title .op-name { font-size: 16px; letter-spacing: -0.02em; }
+    .flow-stage-title .op-type { font-size: 11px; color: var(--muted); font-weight: 800; text-align: right; }
+
+    .machine-chip-list { display: grid; gap: 5px; margin: 8px 0; }
+
+    .machine-chip {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      border: 1px solid #e6ecf3;
+      border-radius: 10px;
+      padding: 5px 7px;
+      background: #f8fafc;
+      font-size: 12px;
+      color: #344054;
+    }
+
+    .machine-chip.ok { border-color: #d1fadf; background: #f6fef9; }
+    .machine-chip.fast { border-color: #b2ddff; background: #eff8ff; }
+    .machine-chip.warn { border-color: #fedf89; background: #fffaeb; }
+    .machine-chip.bad { border-color: #fecdca; background: #fef3f2; }
+    .machine-chip.slowest { box-shadow: inset 3px 0 0 #f79009; }
+
+    .machine-type-line {
+      color: var(--muted);
+      font-size: 11px;
+      margin: 6px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .station-metrics {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 6px;
+    }
+
+    .station-metrics strong { color: var(--ink); }
+
+    .connector {
+      position: relative;
+      z-index: 2;
+      width: 88px;
+      min-width: 88px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .connector::before {
+      content: "→";
+      color: #98a2b3;
+      font-weight: 900;
+      font-size: 22px;
+      position: absolute;
+      top: 46%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .buffer-node {
+      position: absolute;
+      bottom: 7px;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 76px;
+      text-align: center;
+      z-index: 4;
+      filter: drop-shadow(0 7px 13px rgba(234, 88, 12, 0.22));
+    }
+
+    .buffer-stack {
+      display: grid;
+      grid-template-columns: repeat(3, 16px);
+      gap: 3px;
+      justify-content: center;
+      margin-bottom: 2px;
+    }
+
+    .buffer-stack span {
+      width: 16px;
+      height: 12px;
+      border-radius: 3px;
+      background: #fdba74;
+      border: 1px solid #f97316;
+    }
+
+    .buffer-node.high .buffer-stack span { background: #fda29b; border-color: #d92d20; }
+    .buffer-node.medium .buffer-stack span { background: #fdba74; border-color: #ea580c; }
+    .buffer-node.low .buffer-stack span { background: #fde68a; border-color: #f59e0b; }
+
+    .buffer-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 62px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+      font-weight: 900;
+      font-size: 10px;
+      padding: 2px 6px;
+      white-space: nowrap;
+    }
+
+    .part-dot, .loader-car {
+      position: absolute;
+      z-index: 3;
+      left: 26px;
+      bottom: 34px;
+      animation: moveAcross var(--anim-duration) linear infinite;
+    }
+
+    .part-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #1f6feb;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 14px rgba(31, 111, 235, 0.35);
+    }
+
+    .part-dot.p2 { animation-delay: var(--delay2, -4s); }
+    .part-dot.p3 { animation-delay: var(--delay3, -8s); }
+
+    .loader-car {
+      width: 38px;
+      height: 22px;
+      bottom: 24px;
+      border-radius: 8px 8px 6px 6px;
+      background: linear-gradient(180deg, #7c3aed, #4c1d95);
+      box-shadow: 0 6px 18px rgba(76, 29, 149, 0.28);
+      animation-duration: var(--anim-duration);
+    }
+
+    .loader-car::before {
+      content: "";
+      position: absolute;
+      inset: 4px 7px auto 7px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.52);
+    }
+
+    .loader-car::after {
+      content: "";
+      position: absolute;
+      left: 7px;
+      bottom: -5px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #344054;
+      box-shadow: 17px 0 0 #344054;
+    }
+
+    .line-animation.loader-neck .loader-car {
+      background: linear-gradient(180deg, #f04438, #b42318);
+      animation-name: moveAcross, loaderPulse;
+      animation-duration: var(--anim-duration), 0.9s;
+      animation-timing-function: linear, ease-in-out;
+      animation-iteration-count: infinite, infinite;
+    }
+
+    @keyframes moveAcross {
+      from { transform: translateX(0); }
+      to { transform: translateX(var(--travel)); }
+    }
+
+    @keyframes neckPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.20), 0 8px 18px rgba(15, 23, 42, 0.07); }
+      50% { box-shadow: 0 0 0 7px rgba(217, 45, 32, 0.08), 0 12px 26px rgba(15, 23, 42, 0.10); }
+    }
+
+    @keyframes loaderPulse {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.18); }
+    }
+
+    .hidden { display: none !important; }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+      padding: 18px 0 0;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fff;
+    }
+
+    details summary { cursor: pointer; font-weight: 800; }
+    .method-list { color: var(--muted); font-size: 13px; }
+    .method-list li { margin: 8px 0; }
+
+    @media (max-width: 1120px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+      .span-12, .span-8, .span-7, .span-6, .span-5, .span-4 { grid-column: auto; }
+      .settings { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .summary-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+      .recommendations, .buffer-cards { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .settings, .summary-grid { grid-template-columns: 1fr; }
+      header { padding-top: 22px; }
+      .wrap { width: min(100% - 18px, 1460px); }
+      .panel { padding: 14px; }
+      .bar-row { grid-template-columns: 1fr; gap: 4px; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      header, .toolbar, .no-print { display: none !important; }
+      .panel { box-shadow: none; break-inside: avoid; }
+      .part-dot, .loader-car, .flow-stage.neck { animation: none !important; }
+      main { padding: 0; }
+      .wrap { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap hero">
+      <div>
+        <h1>Flexible Cycle Time & Buffer Analyzer</h1>
+        <p class="subtitle">
+          วิเคราะห์ Cycle Time หน่วยนาทีของไลน์ผลิตชิ้นส่วนยานยนต์แบบกำหนดโครงสร้างเองได้: จำนวนเครื่องรวม, Process, Machine รายเครื่อง, Single/Parallel, ประเภทเครื่องจักร, Loader และตำแหน่ง Buffer ที่ควรจัดวาง
+        </p>
+      </div>
+      <div class="hero-card">
+        <strong>Machine + Loader + Buffer</strong>
+        <span>รองรับการสร้างไลน์ผลิตหลาย Process พร้อม Animation และ Buffer Map</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="grid">
+      <div class="panel span-12">
+        <h2>1) ตั้งค่าโครงสร้างไลน์และเกณฑ์วิเคราะห์</h2>
+        <p class="note">หน่วยเวลาทั้งหมดใช้เป็นนาที: Machine CT = min/pc และ Loader = min/Transfer. สำหรับ Parallel ให้เลือก “Parallel”, ระบุจำนวนเครื่อง และกรอก Machine / Standard CT / Actual CT แยกของแต่ละเครื่อง เช่น OP20A, OP20B, OP20C</p>
+        <div class="settings">
+          <div>
+            <label for="machineCount">จำนวนเครื่องจักรทั้งหมดในไลน์</label>
+            <input id="machineCount" type="number" value="15" min="1" max="200" step="1" />
+          </div>
+          <div>
+            <label for="warnPct">เกณฑ์เตือนเกิน Std (%)</label>
+            <input id="warnPct" type="number" value="5" min="0" step="0.1" />
+          </div>
+          <div>
+            <label for="redPct">เกณฑ์ผิดปกติรุนแรง (%)</label>
+            <input id="redPct" type="number" value="10" min="0" step="0.1" />
+          </div>
+          <div>
+            <label for="targetEff">Target EFF. (%)</label>
+            <input id="targetEff" type="number" value="90" min="1" max="150" step="0.1" />
+          </div>
+          <div>
+            <label for="shiftMinute">เวลาผลิตต่อกะ (นาที)</label>
+            <input id="shiftMinute" type="number" value="480" min="1" step="1" />
+          </div>
+          <div>
+            <label for="loaderMode">รูปแบบ Loader</label>
+            <select id="loaderMode">
+              <option value="shared" selected>Loader ตัวเดียว วิ่งเป็น Cycle รวม</option>
+              <option value="independent">แต่ละ Transfer แยกกัน ใช้เวลาสูงสุด</option>
+            </select>
+          </div>
+        </div>
+        <div class="toolbar no-print">
+          <button id="applyCountBtn" class="secondary">สร้าง/ปรับจำนวนเครื่องรวม</button>
+          <button id="addMachineRowBtn" class="secondary">เพิ่ม Process</button>
+          <button id="buildLoaderBtn" class="secondary">สร้าง Loader จาก Process</button>
+          <button id="analyzeBtn">วิเคราะห์ข้อมูล</button>
+          <button id="demoBtn" class="good">ใส่ข้อมูลตัวอย่าง</button>
+          <button id="clearBtn" class="danger">ล้างข้อมูลเวลา</button>
+          <button id="saveBtn" class="secondary">บันทึกลง Browser</button>
+          <button id="loadBtn" class="secondary">โหลดข้อมูลที่บันทึก</button>
+          <button id="exportInputBtn" class="secondary">Export Input JSON</button>
+          <label class="file-label secondary" for="importInputFile">Import JSON</label>
+          <input id="importInputFile" type="file" accept="application/json,.json" />
+          <button id="exportCsvBtn" class="secondary" disabled>Export Report CSV</button>
+          <button id="printBtn" class="secondary" disabled>Print / Save PDF</button>
+        </div>
+      </div>
+
+      <div class="panel span-12">
+        <h2>2) กรอก Process / Machine / รูปแบบ / ประเภทเครื่องจักร / Cycle Time</h2>
+        <p class="note">กรอก 1 แถวต่อ 1 Process. หากเลือก Parallel ระบบจะแสดงช่องจำนวนเครื่องและช่อง Machine / Standard CT / Actual CT แยกของแต่ละเครื่องใน Process นั้น</p>
+        <div class="table-wrap">
+          <table id="machineTable">
+            <thead>
+              <tr>
+                <th class="center">#</th>
+                <th>Process</th>
+                <th>Machine / รายละเอียดเครื่อง</th>
+                <th>รูปแบบ</th>
+                <th class="center">จำนวน M/C</th>
+                <th>ประเภทเครื่องจักร</th>
+                <th class="num">Standard CT<br><small>Single หรือ Effective Parallel (min/pc)</small></th>
+                <th class="num">Actual CT<br><small>Single หรือ Effective Parallel (min/pc)</small></th>
+                <th class="num">Diff<br><small>(min)</small></th>
+                <th class="num">Variance</th>
+                <th>Status</th>
+                <th class="center no-print">ลบ</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel span-12">
+        <h2>3) กรอกเวลา Loader / Transfer (นาที/Transfer)</h2>
+        <p class="note">กด “สร้าง Loader จาก Process” เพื่อสร้าง Transfer จากลำดับ Process ที่กรอกไว้ เช่น Infeed → OP10, OP10 → OP20, ... , OP100 → Outfeed</p>
+        <div class="table-wrap">
+          <table id="loaderTable">
+            <thead>
+              <tr>
+                <th class="center">ใช้</th>
+                <th>Transfer</th>
+                <th>From</th>
+                <th>To</th>
+                <th class="num">Std<br><small>(min)</small></th>
+                <th class="num">Actual<br><small>(min)</small></th>
+                <th>Status</th>
+                <th class="center no-print">ลบ</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="toolbar no-print">
+          <button id="addLoaderRowBtn" class="secondary">เพิ่มแถว Loader เอง</button>
+        </div>
+      </div>
+
+      <div id="errorPanel" class="panel span-12 hidden"></div>
+
+      <div id="resultPanel" class="span-12 hidden">
+        <div class="grid">
+          <div class="panel span-12">
+            <h2>ผลวิเคราะห์ภาพรวม</h2>
+            <div id="summaryCards" class="summary-grid"></div>
+            <div id="mainAlerts"></div>
+          </div>
+
+          <div class="panel span-12 line-animation-panel">
+            <h3>Animation ภาพรวมการไหลของไลน์ผลิต + Buffer Map</h3>
+            <p class="note">กล่อง Buffer สีส้ม/แดงบนเส้นทางคือจุดที่ระบบแนะนำให้มี Buffer เพื่อป้องกัน Starvation/Blocking และป้องกันคอขวดหยุดรอชิ้นงาน</p>
+            <div id="lineAnimation"></div>
+          </div>
+
+          <div class="panel span-12">
+            <h3>Buffer Recommendation</h3>
+            <div id="bufferCards" class="buffer-cards"></div>
+            <div class="table-wrap" style="margin-top: 12px;">
+              <table id="bufferTable">
+                <thead>
+                  <tr>
+                    <th>จุดวาง Buffer</th>
+                    <th class="num">Score</th>
+                    <th>ระดับ</th>
+                    <th class="num">แนะนำขั้นต่ำ<br><small>(pcs)</small></th>
+                    <th>เหตุผล</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel span-6">
+            <h3>Ranking: Process / Loader ที่ใช้เวลาสูงสุด</h3>
+            <p class="note">จัดอันดับจาก Actual Effective CT ของแต่ละ Process และ Loader Resource</p>
+            <div id="processBars"></div>
+          </div>
+
+          <div class="panel span-6">
+            <h3>Neck Process และจุดที่ควรแก้ไขก่อน</h3>
+            <div id="recommendations" class="recommendations"></div>
+          </div>
+
+          <div class="panel span-12">
+            <h3>ตารางสรุป Process Capacity</h3>
+            <div class="table-wrap">
+              <table id="processSummaryTable">
+                <thead>
+                  <tr>
+                    <th>Resource</th>
+                    <th>ประเภท</th>
+                    <th>Machine Type</th>
+                    <th class="num">Std Effective CT<br><small>(min/pc)</small></th>
+                    <th class="num">Actual Effective CT<br><small>(min/pc)</small></th>
+                    <th class="num">Output/hr</th>
+                    <th class="num">Load เทียบ Neck</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel span-12">
+            <h3>จุดผิดปกติรายเครื่อง / Loader Transfer</h3>
+            <div class="table-wrap">
+              <table id="abnormalTable">
+                <thead>
+                  <tr>
+                    <th>จุดตรวจ</th>
+                    <th>ประเภท</th>
+                    <th>Machine Type</th>
+                    <th class="num">Std<br><small>(min)</small></th>
+                    <th class="num">Actual<br><small>(min)</small></th>
+                    <th class="num">Diff<br><small>(min)</small></th>
+                    <th class="num">Variance</th>
+                    <th>Status</th>
+                    <th>คำแนะนำเบื้องต้น</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel span-6">
+            <h3>Balance ของเครื่อง Parallel</h3>
+            <p class="note">Spread สูงหมายถึงเครื่องใน Process เดียวกันทำงานไม่สมดุล อาจทำให้กำลังการผลิตจริงต่ำกว่าที่ควร</p>
+            <div class="table-wrap">
+              <table id="balanceTable">
+                <thead>
+                  <tr>
+                    <th>Process</th>
+                    <th class="num">Min Actual<br><small>(min)</small></th>
+                    <th class="num">Max Actual<br><small>(min)</small></th>
+                    <th class="num">Avg Actual<br><small>(min)</small></th>
+                    <th class="num">Spread</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel span-6">
+            <h3>Loader Analysis</h3>
+            <div id="loaderSummary"></div>
+            <div class="table-wrap" style="margin-top: 12px;">
+              <table id="loaderSummaryTable">
+                <thead>
+                  <tr>
+                    <th>Transfer</th>
+                    <th class="num">Std<br><small>(min)</small></th>
+                    <th class="num">Actual<br><small>(min)</small></th>
+                    <th class="num">Diff<br><small>(min)</small></th>
+                    <th class="num">Variance</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel span-6">
+            <h3>Machine Type Loss Summary</h3>
+            <p class="note">สรุปตามประเภทเครื่องจักร เพื่อดูว่ากลุ่มเครื่องชนิดใดมี Loss หรือ Variance สูง</p>
+            <div class="table-wrap">
+              <table id="machineTypeTable">
+                <thead>
+                  <tr>
+                    <th>ประเภทเครื่องจักร</th>
+                    <th class="num">จำนวน</th>
+                    <th class="num">Avg Variance</th>
+                    <th class="num">Loss รวม<br><small>(min)</small></th>
+                    <th>Worst Machine</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel span-6">
+            <h3>ข้อมูลที่ควรเก็บเพิ่มสำหรับปรับปรุง EFF. ให้สูงสุด</h3>
+            <div id="additionalData" class="recommendations"></div>
+          </div>
+
+          <div class="panel span-12">
+            <details>
+              <summary>วิธีคำนวณที่ใช้ใน Web App นี้</summary>
+              <ul class="method-list">
+                <li><strong>Variance %</strong> = (Actual CT - Standard CT) / Standard CT × 100</li>
+                <li><strong>Process แบบ Parallel</strong> คำนวณ Effective CT = 1 / ผลรวม(1 / Actual CT ของเครื่องใน Process นั้น)</li>
+                <li><strong>Line Actual CT</strong> = ค่าสูงสุดระหว่าง Actual Effective CT ของแต่ละ Process และเวลา Loader ตามโหมดที่เลือก</li>
+                <li><strong>Line EFF. เทียบ Standard</strong> = Standard Line CT / Actual Line CT × 100</li>
+                <li><strong>Output/hr</strong> = 60 / Actual Line CT เพราะ CT ในโปรแกรมนี้เป็นหน่วยนาทีต่อชิ้น</li>
+                <li><strong>Buffer Score</strong> พิจารณาจากตำแหน่งก่อน/หลังคอขวด, Downstream CT ช้ากว่า Upstream, จุดหน้า Parallel, จุดรวมจาก Parallel เข้า Single และ Loader Transfer ที่ช้าหรือเกิน Std</li>
+                <li><strong>จำนวน Buffer ขั้นต่ำ</strong> เป็น heuristic เริ่มต้นเพื่อวิเคราะห์ไลน์: High ≈ 10 นาทีของ Line CT, Medium ≈ 5 นาที, Low ≈ 2 นาที ควรปรับด้วยข้อมูล Downtime, Changeover, Minor stop และพื้นที่จริง</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="footer-note">Offline single-file HTML • ใช้ข้อมูลในเครื่องของคุณเท่านั้น ไม่มีการส่งข้อมูลออกนอก Browser</div>
+  </main>
+
+  <script>
+    "use strict";
+
+    const MACHINE_TYPES = [
+      "Machining center",
+      "Special machine",
+      "Washing",
+      "Rust protect",
+      "Deburring",
+      "Marking",
+      "Inspection",
+      "Robot rawmat",
+      "Assembly",
+      "เครื่องวัดขนาดชิ้นงาน"
+    ];
+
+    const DEFAULT_MACHINE_ROWS = [
+      { process: "OP10", format: "single", machineType: "Machining center", machine: "OP10", std: "", actual: "", parallelCount: 1, machines: [] },
+      { process: "OP20", format: "parallel", machineType: "Machining center", parallelCount: 3, machines: [
+        { machine: "OP20A", std: "", actual: "" },
+        { machine: "OP20B", std: "", actual: "" },
+        { machine: "OP20C", std: "", actual: "" }
+      ]},
+      { process: "OP30", format: "single", machineType: "Deburring", machine: "OP30", std: "", actual: "", parallelCount: 1, machines: [] },
+      { process: "OP40", format: "parallel", machineType: "Machining center", parallelCount: 3, machines: [
+        { machine: "OP40A", std: "", actual: "" },
+        { machine: "OP40B", std: "", actual: "" },
+        { machine: "OP40C", std: "", actual: "" }
+      ]},
+      { process: "OP50", format: "parallel", machineType: "Washing", parallelCount: 2, machines: [
+        { machine: "OP50A", std: "", actual: "" },
+        { machine: "OP50B", std: "", actual: "" }
+      ]},
+      { process: "OP60", format: "single", machineType: "Rust protect", machine: "OP60", std: "", actual: "", parallelCount: 1, machines: [] },
+      { process: "OP70", format: "single", machineType: "Marking", machine: "OP70", std: "", actual: "", parallelCount: 1, machines: [] },
+      { process: "OP80", format: "single", machineType: "Inspection", machine: "OP80", std: "", actual: "", parallelCount: 1, machines: [] },
+      { process: "OP90", format: "single", machineType: "เครื่องวัดขนาดชิ้นงาน", machine: "OP90", std: "", actual: "", parallelCount: 1, machines: [] },
+      { process: "OP100", format: "single", machineType: "Robot rawmat", machine: "OP100", std: "", actual: "", parallelCount: 1, machines: [] }
+    ];
+
+    let machineRows = clone(DEFAULT_MACHINE_ROWS);
+    let loaderRows = buildDefaultLoaderRowsFromMachineRows(machineRows);
+    let latestReport = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function clone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function fmt(value, digits = 2) {
+      if (!Number.isFinite(value)) return "-";
+      return Number(value).toLocaleString("th-TH", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function pct(value, digits = 1) {
+      if (!Number.isFinite(value)) return "-";
+      const sign = value > 0 ? "+" : "";
+      return sign + fmt(value, digits) + "%";
+    }
+
+    function parseNumber(value) {
+      if (typeof value !== "string") value = String(value ?? "");
+      const cleaned = value.trim().replace(/,/g, ".");
+      if (cleaned === "") return NaN;
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function tag(text, cls = "gray") {
+      return `<span class="tag ${cls}">${escapeHtml(text)}</span>`;
+    }
+
+    function varianceStatus(variancePct, warnPct, redPct) {
+      if (!Number.isFinite(variancePct)) return { label: "ไม่มีข้อมูล", cls: "gray", rank: 0 };
+      if (variancePct >= redPct) return { label: "ผิดปกติรุนแรง", cls: "bad", rank: 3 };
+      if (variancePct >= warnPct) return { label: "เฝ้าระวัง", cls: "warn", rank: 2 };
+      if (variancePct <= -warnPct) return { label: "เร็วกว่า Std", cls: "fast", rank: 1 };
+      return { label: "ปกติ", cls: "ok", rank: 0 };
+    }
+
+    function bufferLevel(score) {
+      if (score >= 70) return { label: "ควรมี Buffer", cls: "buffer-high", short: "high", protectionMin: 10 };
+      if (score >= 45) return { label: "แนะนำ", cls: "buffer-medium", short: "medium", protectionMin: 5 };
+      if (score >= 25) return { label: "เฝ้าระวัง", cls: "buffer-low", short: "low", protectionMin: 2 };
+      return { label: "ไม่จำเป็นเร่งด่วน", cls: "gray", short: "none", protectionMin: 0 };
+    }
+
+    function typeOptions(selected) {
+      return MACHINE_TYPES.map(t => `<option value="${escapeHtml(t)}" ${t === selected ? "selected" : ""}>${escapeHtml(t)}</option>`).join("");
+    }
+
+    function formatOptions(selected) {
+      return `
+        <option value="single" ${selected === "single" ? "selected" : ""}>Single</option>
+        <option value="parallel" ${selected === "parallel" ? "selected" : ""}>Parallel</option>
+      `;
+    }
+
+    function machineLetter(index) {
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      if (index < letters.length) return letters[index];
+      return String(index + 1);
+    }
+
+    function defaultMachineName(process, index) {
+      const base = String(process || "MC").trim() || "MC";
+      return `${base}${machineLetter(index)}`;
+    }
+
+    function normalizeCount(value, fallback = 1, min = 1, max = 200) {
+      const n = Math.floor(parseNumber(value));
+      const chosen = Number.isFinite(n) ? n : fallback;
+      return Math.max(min, Math.min(max, chosen));
+    }
+
+    function normalizeMachineRow(row, index) {
+      const source = row || {};
+      const process = String(source.process || source.group || inferProcessFromMachine(source.machine || `OP${(index + 1) * 10}`)).trim() || `OP${(index + 1) * 10}`;
+      const format = (source.format || source.type) === "parallel" ? "parallel" : "single";
+      const machineType = MACHINE_TYPES.includes(source.machineType) ? source.machineType : (source.machineType || MACHINE_TYPES[0]);
+      if (format === "parallel") {
+        const rawDetails = Array.isArray(source.machines) ? source.machines : [];
+        const count = normalizeCount(source.parallelCount ?? source.count ?? rawDetails.length, Math.max(2, rawDetails.length || 2), 2, 50);
+        const details = [];
+        for (let i = 0; i < count; i++) {
+          const d = rawDetails[i] || {};
+          details.push({
+            machine: d.machine || d.name || defaultMachineName(process, i),
+            std: d.std ?? source.std ?? "",
+            actual: d.actual ?? source.actual ?? ""
+          });
+        }
+        return { process, format: "parallel", machineType, machine: "", std: "", actual: "", parallelCount: count, machines: details };
+      }
+      const firstDetail = Array.isArray(source.machines) && source.machines.length ? source.machines[0] : {};
+      return {
+        process,
+        format: "single",
+        machineType,
+        machine: source.machine || firstDetail.machine || firstDetail.name || process,
+        std: source.std ?? firstDetail.std ?? "",
+        actual: source.actual ?? firstDetail.actual ?? "",
+        parallelCount: 1,
+        machines: []
+      };
+    }
+
+    function normalizeAllMachineRows() {
+      machineRows = machineRows.map((row, index) => normalizeMachineRow(row, index));
+      if (!machineRows.length) machineRows.push(blankMachineRow(1));
+    }
+
+    function totalMachineCount(rows = machineRows) {
+      return rows.reduce((sum, row) => {
+        const r = normalizeMachineRow(row, 0);
+        return sum + (r.format === "parallel" ? r.parallelCount : 1);
+      }, 0);
+    }
+
+    function effectiveCt(values) {
+      const valid = values.filter(v => v > 0);
+      if (valid.length !== values.length || valid.length === 0) return NaN;
+      return 1 / valid.reduce((sum, v) => sum + 1 / v, 0);
+    }
+
+    function processEffectiveFromRow(row) {
+      const r = normalizeMachineRow(row, 0);
+      if (r.format !== "parallel") {
+        const std = parseNumber(r.std);
+        const actual = parseNumber(r.actual);
+        return { std, actual };
+      }
+      return {
+        std: effectiveCt(r.machines.map(m => parseNumber(m.std))),
+        actual: effectiveCt(r.machines.map(m => parseNumber(m.actual)))
+      };
+    }
+
+    function renderMachineDetailCell(m, index) {
+      if (m.format !== "parallel") {
+        return `<input class="name-input" id="mc_${index}" type="text" value="${escapeHtml(m.machine)}" placeholder="Machine" />`;
+      }
+      return `
+        <div class="parallel-machine-box">
+          <div class="parallel-hint">กรอกชื่อและ CT แยกของแต่ละเครื่องใน ${escapeHtml(m.process)}</div>
+          <div class="parallel-machine-head"><span>#</span><span>Machine</span><span>Std</span><span>Actual</span><span>Status</span></div>
+          ${m.machines.map((mc, subIndex) => `
+            <div class="parallel-machine-row">
+              <span class="idx">${subIndex + 1}</span>
+              <input class="name-input parallel-machine-name" id="pm_name_${index}_${subIndex}" type="text" value="${escapeHtml(mc.machine)}" placeholder="${escapeHtml(defaultMachineName(m.process, subIndex))}" />
+              <input class="small-input parallel-machine-std" id="pm_std_${index}_${subIndex}" type="number" min="0" step="0.01" value="${escapeHtml(mc.std)}" placeholder="Std" />
+              <input class="small-input parallel-machine-act" id="pm_act_${index}_${subIndex}" type="number" min="0" step="0.01" value="${escapeHtml(mc.actual)}" placeholder="Actual" />
+              <span id="pm_status_${index}_${subIndex}">${tag("รอข้อมูล", "gray")}</span>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderMachineTable() {
+      normalizeAllMachineRows();
+      const body = $("machineTable").querySelector("tbody");
+      body.innerHTML = machineRows.map((m, index) => {
+        const isParallel = m.format === "parallel";
+        return `
+          <tr data-row="${index}">
+            <td class="center"><strong>${index + 1}</strong></td>
+            <td><input class="process-input" id="p_${index}" type="text" value="${escapeHtml(m.process)}" placeholder="OP10" /></td>
+            <td>${renderMachineDetailCell(m, index)}</td>
+            <td><select class="select-input format-select" id="fmt_${index}">${formatOptions(m.format)}</select></td>
+            <td class="center"><input class="small-input count-input parallel-count" id="pcount_${index}" type="number" min="${isParallel ? 2 : 1}" max="50" step="1" value="${isParallel ? m.parallelCount : 1}" ${isParallel ? "" : "disabled"} title="จำนวนเครื่องใน Process นี้" /></td>
+            <td><select class="type-select" id="mtype_${index}">${typeOptions(m.machineType)}</select></td>
+            <td class="num">${isParallel ? `<span class="process-effective" id="m_std_eff_${index}">-</span><span class="effective-note">คำนวณจากเครื่องย่อย</span>` : `<input class="small-input machine-std" id="m_std_${index}" type="number" min="0" step="0.01" value="${escapeHtml(m.std)}" placeholder="min/pc" />`}</td>
+            <td class="num">${isParallel ? `<span class="process-effective" id="m_act_eff_${index}">-</span><span class="effective-note">คำนวณจากเครื่องย่อย</span>` : `<input class="small-input machine-act" id="m_act_${index}" type="number" min="0" step="0.01" value="${escapeHtml(m.actual)}" placeholder="min/pc" />`}</td>
+            <td class="num" id="m_diff_${index}">-</td>
+            <td class="num" id="m_var_${index}">-</td>
+            <td id="m_status_${index}">${tag("รอข้อมูล", "gray")}</td>
+            <td class="center no-print"><button class="icon-btn danger" type="button" onclick="deleteMachineRow(${index})">ลบ</button></td>
+          </tr>
+        `;
+      }).join("");
+      $("machineCount").value = totalMachineCount(machineRows);
+      updateInlineStatus();
+    }
+
+    function renderLoaderTable() {
+      const body = $("loaderTable").querySelector("tbody");
+      body.innerHTML = loaderRows.map((l, index) => `
+        <tr data-loader-row="${index}">
+          <td class="center"><input id="l_use_${index}" type="checkbox" ${l.use === false ? "" : "checked"} /></td>
+          <td><input class="name-input" id="l_name_${index}" type="text" value="${escapeHtml(l.name)}" placeholder="Transfer name" /></td>
+          <td><input class="process-input" id="l_from_${index}" type="text" value="${escapeHtml(l.from)}" placeholder="From" /></td>
+          <td><input class="process-input" id="l_to_${index}" type="text" value="${escapeHtml(l.to)}" placeholder="To" /></td>
+          <td class="num"><input class="small-input loader-std" id="l_std_${index}" type="number" min="0" step="0.01" value="${escapeHtml(l.std)}" placeholder="min" /></td>
+          <td class="num"><input class="small-input loader-act" id="l_act_${index}" type="number" min="0" step="0.01" value="${escapeHtml(l.actual)}" placeholder="min" /></td>
+          <td id="l_status_${index}">${tag("รอข้อมูล", "gray")}</td>
+          <td class="center no-print"><button class="icon-btn danger" type="button" onclick="deleteLoaderRow(${index})">ลบ</button></td>
+        </tr>
+      `).join("");
+      updateInlineStatus();
+    }
+
+    function syncMachineRowsFromInputs() {
+      if (!$("machineTable")) return;
+      machineRows = machineRows.map((m, index) => {
+        const existing = normalizeMachineRow(m, index);
+        const process = ($("p_" + index)?.value || existing.process || `OP${(index + 1) * 10}`).trim();
+        const format = $("fmt_" + index)?.value === "parallel" ? "parallel" : "single";
+        const machineType = $("mtype_" + index)?.value || existing.machineType || MACHINE_TYPES[0];
+        if (format === "parallel") {
+          const oldDetails = existing.format === "parallel" ? existing.machines : [{ machine: existing.machine, std: existing.std, actual: existing.actual }];
+          const count = normalizeCount($("pcount_" + index)?.value, Math.max(2, existing.parallelCount || oldDetails.length || 2), 2, 50);
+          const details = [];
+          for (let j = 0; j < count; j++) {
+            const old = oldDetails[j] || {};
+            details.push({
+              machine: ($(`pm_name_${index}_${j}`)?.value || old.machine || defaultMachineName(process, j)).trim(),
+              std: $(`pm_std_${index}_${j}`)?.value ?? old.std ?? "",
+              actual: $(`pm_act_${index}_${j}`)?.value ?? old.actual ?? ""
+            });
+          }
+          return { process, format: "parallel", machineType, machine: "", std: "", actual: "", parallelCount: count, machines: details };
+        }
+        const firstDetail = existing.format === "parallel" && existing.machines.length ? existing.machines[0] : {};
+        return {
+          process,
+          machine: ($("mc_" + index)?.value || existing.machine || firstDetail.machine || process).trim(),
+          format: "single",
+          machineType,
+          std: $("m_std_" + index)?.value ?? existing.std ?? firstDetail.std ?? "",
+          actual: $("m_act_" + index)?.value ?? existing.actual ?? firstDetail.actual ?? "",
+          parallelCount: 1,
+          machines: []
+        };
+      });
+    }
+
+    function syncLoaderRowsFromInputs() {
+      if (!$('loaderTable')) return;
+      loaderRows = loaderRows.map((l, index) => ({
+        id: l.id || `LD_${index + 1}`,
+        use: $("l_use_" + index)?.checked !== false,
+        name: ($("l_name_" + index)?.value || "").trim(),
+        from: ($("l_from_" + index)?.value || "").trim(),
+        to: ($("l_to_" + index)?.value || "").trim(),
+        std: $("l_std_" + index)?.value || "",
+        actual: $("l_act_" + index)?.value || ""
+      }));
+    }
+
+    window.deleteMachineRow = function(index) {
+      syncMachineRowsFromInputs();
+      machineRows.splice(index, 1);
+      if (machineRows.length === 0) machineRows.push(blankMachineRow(1));
+      renderMachineTable();
+      latestReport = null;
+    };
+
+    window.deleteLoaderRow = function(index) {
+      syncLoaderRowsFromInputs();
+      loaderRows.splice(index, 1);
+      renderLoaderTable();
+      latestReport = null;
+    };
+
+    function blankMachineRow(index) {
+      return { process: `OP${index * 10}`, machine: `MC${index}`, format: "single", machineType: MACHINE_TYPES[0], std: "", actual: "", parallelCount: 1, machines: [] };
+    }
+
+    function adjustMachineCount() {
+      syncMachineRowsFromInputs();
+      normalizeAllMachineRows();
+      const target = Math.max(1, Math.min(200, Math.floor(parseNumber($("machineCount").value) || totalMachineCount(machineRows) || 1)));
+      let current = totalMachineCount(machineRows);
+      while (current < target) {
+        machineRows.push(blankMachineRow(machineRows.length + 1));
+        current = totalMachineCount(machineRows);
+      }
+      while (current > target && machineRows.length > 0) {
+        const last = machineRows[machineRows.length - 1];
+        if (last.format === "parallel" && last.parallelCount > 2 && current - 1 >= target) {
+          last.parallelCount -= 1;
+          last.machines = last.machines.slice(0, last.parallelCount);
+        } else {
+          machineRows.pop();
+        }
+        current = totalMachineCount(machineRows);
+      }
+      while (totalMachineCount(machineRows) < target) {
+        machineRows.push(blankMachineRow(machineRows.length + 1));
+      }
+      if (machineRows.length === 0) machineRows.push(blankMachineRow(1));
+      renderMachineTable();
+      latestReport = null;
+    }
+
+    function addMachineRow() {
+      syncMachineRowsFromInputs();
+      machineRows.push(blankMachineRow(machineRows.length + 1));
+      renderMachineTable();
+      latestReport = null;
+    }
+
+    function addLoaderRow() {
+      syncLoaderRowsFromInputs();
+      const n = loaderRows.length + 1;
+      loaderRows.push({ id: `LD_MANUAL_${Date.now()}`, use: true, name: `Manual Transfer ${n}`, from: "", to: "", std: "", actual: "" });
+      renderLoaderTable();
+    }
+
+    function uniqueProcessesFromRows(rows) {
+      const seen = new Set();
+      const processes = [];
+      rows.forEach(r => {
+        const p = String(r.process || "").trim();
+        if (p && !seen.has(p)) {
+          seen.add(p);
+          processes.push(p);
+        }
+      });
+      return processes;
+    }
+
+    function buildDefaultLoaderRowsFromMachineRows(rows) {
+      const processes = uniqueProcessesFromRows(rows);
+      const points = ["Infeed", ...processes, "Outfeed"];
+      const result = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        const from = points[i];
+        const to = points[i + 1];
+        result.push({
+          id: `LD_${i + 1}_${safeId(from)}_${safeId(to)}`,
+          use: true,
+          name: `${from} → ${to}`,
+          from,
+          to,
+          std: "",
+          actual: ""
+        });
+      }
+      return result;
+    }
+
+    function safeId(text) {
+      return String(text || "").replace(/[^a-zA-Z0-9ก-๙]+/g, "_");
+    }
+
+    function buildLoaderFromProcessesKeepTimes() {
+      syncMachineRowsFromInputs();
+      syncLoaderRowsFromInputs();
+      const old = loaderRows;
+      const fresh = buildDefaultLoaderRowsFromMachineRows(machineRows);
+      fresh.forEach(row => {
+        const matched = old.find(o => o.from === row.from && o.to === row.to) || old.find(o => o.name === row.name);
+        if (matched) {
+          row.use = matched.use !== false;
+          row.std = matched.std ?? "";
+          row.actual = matched.actual ?? "";
+        }
+      });
+      loaderRows = fresh;
+      renderLoaderTable();
+    }
+
+    function updateInlineStatus() {
+      const warnPct = parseNumber($("warnPct")?.value) || 5;
+      const redPct = parseNumber($("redPct")?.value) || 10;
+
+      machineRows.forEach((m, index) => {
+        const fmtEl = $("fmt_" + index);
+        if (!fmtEl) return;
+        const format = fmtEl.value === "parallel" ? "parallel" : "single";
+        const diffCell = $("m_diff_" + index);
+        const varCell = $("m_var_" + index);
+        const statusCell = $("m_status_" + index);
+        let std = NaN;
+        let act = NaN;
+
+        if (format === "parallel") {
+          const count = normalizeCount($("pcount_" + index)?.value, normalizeMachineRow(m, index).parallelCount || 2, 2, 50);
+          const stds = [];
+          const acts = [];
+          for (let j = 0; j < count; j++) {
+            const s = parseNumber($(`pm_std_${index}_${j}`)?.value);
+            const a = parseNumber($(`pm_act_${index}_${j}`)?.value);
+            stds.push(s);
+            acts.push(a);
+            const childStatus = $(`pm_status_${index}_${j}`);
+            if (childStatus) {
+              if (s > 0 && a > 0) {
+                const childVariance = (a - s) / s * 100;
+                const cs = varianceStatus(childVariance, warnPct, redPct);
+                childStatus.innerHTML = tag(cs.label, cs.cls);
+              } else {
+                childStatus.innerHTML = tag("รอข้อมูล", "gray");
+              }
+            }
+          }
+          std = effectiveCt(stds);
+          act = effectiveCt(acts);
+          const stdEff = $(`m_std_eff_${index}`);
+          const actEff = $(`m_act_eff_${index}`);
+          if (stdEff) stdEff.textContent = std > 0 ? fmt(std, 3) : "-";
+          if (actEff) actEff.textContent = act > 0 ? fmt(act, 3) : "-";
+        } else {
+          const stdEl = $("m_std_" + index);
+          const actEl = $("m_act_" + index);
+          if (!stdEl || !actEl) return;
+          std = parseNumber(stdEl.value);
+          act = parseNumber(actEl.value);
+        }
+
+        if (std > 0 && act > 0) {
+          const diff = act - std;
+          const variance = diff / std * 100;
+          const s = varianceStatus(variance, warnPct, redPct);
+          diffCell.textContent = fmt(diff, 3);
+          varCell.textContent = pct(variance, 1);
+          statusCell.innerHTML = tag(s.label, s.cls);
+        } else {
+          diffCell.textContent = "-";
+          varCell.textContent = "-";
+          statusCell.innerHTML = tag("รอข้อมูล", "gray");
+        }
+      });
+
+      loaderRows.forEach((l, index) => {
+        const useEl = $("l_use_" + index);
+        const stdEl = $("l_std_" + index);
+        const actEl = $("l_act_" + index);
+        const statusCell = $("l_status_" + index);
+        if (!useEl || !stdEl || !actEl || !statusCell) return;
+        const use = useEl.checked;
+        const std = parseNumber(stdEl.value);
+        const act = parseNumber(actEl.value);
+        if (!use) {
+          statusCell.innerHTML = tag("ไม่ใช้", "gray");
+        } else if (std > 0 && act > 0) {
+          const variance = (act - std) / std * 100;
+          const s = varianceStatus(variance, warnPct, redPct);
+          statusCell.innerHTML = tag(s.label, s.cls);
+        } else {
+          statusCell.innerHTML = tag("รอข้อมูล", "gray");
+        }
+      });
+    }
+
+    function readInputs() {
+      syncMachineRowsFromInputs();
+      syncLoaderRowsFromInputs();
+      normalizeAllMachineRows();
+
+      const errors = [];
+      const warnings = [];
+      const warnPct = parseNumber($("warnPct").value);
+      const redPct = parseNumber($("redPct").value);
+      const targetEff = parseNumber($("targetEff").value);
+      const shiftMinute = parseNumber($("shiftMinute").value);
+      const loaderMode = $("loaderMode").value;
+      const machineCountInput = Math.floor(parseNumber($("machineCount").value));
+      const actualMachineCount = totalMachineCount(machineRows);
+
+      if (!(machineCountInput > 0)) errors.push("กรุณาใส่จำนวนเครื่องจักรทั้งหมดในไลน์มากกว่า 0");
+      if (machineCountInput !== actualMachineCount) warnings.push(`จำนวนเครื่องจักรที่ตั้งไว้ ${machineCountInput} แต่ข้อมูล Process/Parallel รวมได้ ${actualMachineCount} เครื่อง ระบบจะใช้ ${actualMachineCount} เครื่องในการคำนวณ`);
+      if (!(warnPct >= 0)) errors.push("กรุณาใส่เกณฑ์เตือนเป็นตัวเลข 0 ขึ้นไป");
+      if (!(redPct > 0)) errors.push("กรุณาใส่เกณฑ์ผิดปกติรุนแรงเป็นตัวเลขมากกว่า 0");
+      if (Number.isFinite(warnPct) && Number.isFinite(redPct) && warnPct > redPct) errors.push("เกณฑ์เตือนควรน้อยกว่าหรือเท่ากับเกณฑ์ผิดปกติรุนแรง");
+      if (!(targetEff > 0)) errors.push("กรุณาใส่ Target EFF. เป็นตัวเลขมากกว่า 0");
+      if (!(shiftMinute > 0)) errors.push("กรุณาใส่เวลาผลิตต่อกะเป็นตัวเลขมากกว่า 0");
+
+      const machines = [];
+      machineRows.forEach((row, rowIndex) => {
+        const process = String(row.process || "").trim();
+        const machineType = MACHINE_TYPES.includes(row.machineType) ? row.machineType : (row.machineType || MACHINE_TYPES[0]);
+        if (!process) errors.push(`Process แถว ${rowIndex + 1}: กรุณาใส่ Process`);
+
+        if (row.format === "parallel") {
+          const count = normalizeCount(row.parallelCount, row.machines.length || 2, 2, 50);
+          if (count < 2) errors.push(`${process || "Process แถว " + (rowIndex + 1)}: Parallel ต้องมีจำนวนเครื่องอย่างน้อย 2 เครื่อง`);
+          row.machines.slice(0, count).forEach((detail, subIndex) => {
+            const machine = String(detail.machine || "").trim();
+            const std = parseNumber(detail.std);
+            const actual = parseNumber(detail.actual);
+            const label = machine || `${process || "Process"} เครื่องที่ ${subIndex + 1}`;
+            if (!machine) errors.push(`${process || "Process แถว " + (rowIndex + 1)} เครื่องที่ ${subIndex + 1}: กรุณาใส่ Machine Name`);
+            if (!(std > 0)) errors.push(`${label}: กรุณาใส่ Standard CT มากกว่า 0`);
+            if (!(actual > 0)) errors.push(`${label}: กรุณาใส่ Actual CT มากกว่า 0`);
+            const diff = actual - std;
+            const variancePct = diff / std * 100;
+            machines.push({
+              index: rowIndex,
+              subIndex,
+              process,
+              machine,
+              format: "parallel",
+              machineType,
+              std,
+              actual,
+              diff,
+              variancePct,
+              status: varianceStatus(variancePct, warnPct || 5, redPct || 10)
+            });
+          });
+        } else {
+          const machine = String(row.machine || "").trim();
+          const std = parseNumber(row.std);
+          const actual = parseNumber(row.actual);
+          if (!machine) errors.push(`แถว ${rowIndex + 1}: กรุณาใส่ Machine Name`);
+          if (!(std > 0)) errors.push(`${machine || "แถว " + (rowIndex + 1)}: กรุณาใส่ Standard CT มากกว่า 0`);
+          if (!(actual > 0)) errors.push(`${machine || "แถว " + (rowIndex + 1)}: กรุณาใส่ Actual CT มากกว่า 0`);
+          const diff = actual - std;
+          const variancePct = diff / std * 100;
+          machines.push({
+            index: rowIndex,
+            subIndex: 0,
+            process,
+            machine,
+            format: "single",
+            machineType,
+            std,
+            actual,
+            diff,
+            variancePct,
+            status: varianceStatus(variancePct, warnPct || 5, redPct || 10)
+          });
+        }
+      });
+
+      const duplicateMachines = findDuplicates(machines.map(m => m.machine).filter(Boolean));
+      duplicateMachines.forEach(name => warnings.push(`พบ Machine name ซ้ำ: ${name} หากเป็นคนละเครื่องควรตั้งชื่อให้ไม่ซ้ำ`));
+
+      const loaders = loaderRows.map((l, index) => {
+        const use = l.use !== false;
+        const name = String(l.name || "").trim() || `Loader ${index + 1}`;
+        const from = String(l.from || "").trim();
+        const to = String(l.to || "").trim();
+        const std = parseNumber(l.std);
+        const actual = parseNumber(l.actual);
+        if (use) {
+          if (!name) errors.push(`Loader แถว ${index + 1}: กรุณาใส่ชื่อ Transfer`);
+          if (!(std > 0)) errors.push(`${name}: กรุณาใส่ Standard Time มากกว่า 0 หรือเอาเครื่องหมายใช้คำนวณออก`);
+          if (!(actual > 0)) errors.push(`${name}: กรุณาใส่ Actual Time มากกว่า 0 หรือเอาเครื่องหมายใช้คำนวณออก`);
+        }
+        const diff = actual - std;
+        const variancePct = diff / std * 100;
+        return { id: l.id || `LD_${index + 1}`, index, use, name, from, to, std, actual, diff, variancePct, status: varianceStatus(variancePct, warnPct || 5, redPct || 10) };
+      }).filter(l => l.use);
+
+      if (loaders.length === 0) errors.push("กรุณาเลือก Loader อย่างน้อย 1 จุด หรือใส่เวลา Loader ที่ต้องการคำนวณ");
+
+      return {
+        errors,
+        warnings,
+        config: { warnPct, redPct, targetEff, shiftMinute, loaderMode, machineCount: actualMachineCount },
+        machines,
+        loaders
+      };
+    }
+
+    function findDuplicates(values) {
+      const seen = new Set();
+      const dup = new Set();
+      values.forEach(v => {
+        if (seen.has(v)) dup.add(v);
+        seen.add(v);
+      });
+      return Array.from(dup);
+    }
+
+    function analyze() {
+      const input = readInputs();
+      if (input.errors.length) {
+        showErrors(input.errors, input.warnings);
+        latestReport = null;
+        $("exportCsvBtn").disabled = true;
+        $("printBtn").disabled = true;
+        return;
+      }
+      $("errorPanel").classList.add("hidden");
+
+      const { config, machines, loaders, warnings } = input;
+      const groupMap = new Map();
+      const processOrder = [];
+      machines.forEach(m => {
+        if (!groupMap.has(m.process)) {
+          groupMap.set(m.process, []);
+          processOrder.push(m.process);
+        }
+        groupMap.get(m.process).push(m);
+      });
+
+      const processSummaries = processOrder.map(process => {
+        const list = groupMap.get(process);
+        const capacityStd = list.reduce((sum, m) => sum + 1 / m.std, 0);
+        const capacityActual = list.reduce((sum, m) => sum + 1 / m.actual, 0);
+        const stdCT = 1 / capacityStd;
+        const actualCT = 1 / capacityActual;
+        const actuals = list.map(m => m.actual);
+        const stds = list.map(m => m.std);
+        const avgActual = avg(actuals);
+        const minActual = Math.min(...actuals);
+        const maxActual = Math.max(...actuals);
+        const spread = maxActual - minActual;
+        const spreadPct = avgActual > 0 ? spread / avgActual * 100 : 0;
+        const hasParallelFlag = list.some(m => m.format === "parallel");
+        const mode = list.length > 1 || hasParallelFlag ? "Parallel Process" : "Single Process";
+        const machineTypes = Array.from(new Set(list.map(m => m.machineType)));
+        const variancePct = (actualCT - stdCT) / stdCT * 100;
+        return {
+          name: process,
+          type: mode,
+          count: list.length,
+          stdCT,
+          actualCT,
+          diff: actualCT - stdCT,
+          variancePct,
+          status: varianceStatus(variancePct, config.warnPct, config.redPct),
+          capacityStd,
+          capacityActual,
+          outputHr: 60 / actualCT,
+          machines: list,
+          minActual,
+          maxActual,
+          avgActual,
+          spread,
+          spreadPct,
+          avgStd: avg(stds),
+          machineTypes
+        };
+      });
+
+      processSummaries.forEach(p => {
+        if (p.count > 1 && !p.machines.some(m => m.format === "parallel")) {
+          warnings.push(`${p.name}: มี ${p.count} เครื่องใน Process เดียวกัน แต่ยังเลือกเป็น Single ทั้งหมด ระบบคำนวณกำลังผลิตรวมแบบ Parallel ตามจำนวนเครื่อง`);
+        }
+        if (p.count === 1 && p.machines[0].format === "parallel") {
+          warnings.push(`${p.name}: เลือก Parallel แต่มีเครื่องเดียว ระบบคำนวณเหมือน Single จนกว่าจะเพิ่มเครื่องใน Process เดียวกัน`);
+        }
+      });
+
+      const loaderStdTotal = loaders.reduce((sum, l) => sum + l.std, 0);
+      const loaderActualTotal = loaders.reduce((sum, l) => sum + l.actual, 0);
+      const loaderMaxStd = Math.max(...loaders.map(l => l.std));
+      const loaderMaxActual = Math.max(...loaders.map(l => l.actual));
+      const loaderModeShared = config.loaderMode === "shared";
+      const loaderResource = {
+        name: loaderModeShared ? "LOADER รวม Cycle" : "LOADER Transfer สูงสุด",
+        type: loaderModeShared ? "Shared Loader" : "Independent Transfer",
+        count: loaders.length,
+        stdCT: loaderModeShared ? loaderStdTotal : loaderMaxStd,
+        actualCT: loaderModeShared ? loaderActualTotal : loaderMaxActual,
+        diff: (loaderModeShared ? loaderActualTotal : loaderMaxActual) - (loaderModeShared ? loaderStdTotal : loaderMaxStd),
+        variancePct: ((loaderModeShared ? loaderActualTotal : loaderMaxActual) - (loaderModeShared ? loaderStdTotal : loaderMaxStd)) / (loaderModeShared ? loaderStdTotal : loaderMaxStd) * 100,
+        outputHr: 60 / (loaderModeShared ? loaderActualTotal : loaderMaxActual),
+        loaders
+      };
+      loaderResource.status = varianceStatus(loaderResource.variancePct, config.warnPct, config.redPct);
+
+      const resources = [...processSummaries, loaderResource].sort((a, b) => b.actualCT - a.actualCT);
+      const standardResources = [...processSummaries.map(p => ({ name: p.name, stdCT: p.stdCT })), { name: loaderResource.name, stdCT: loaderResource.stdCT }];
+      const neck = resources[0];
+      const lineActualCT = neck.actualCT;
+      const lineStdCT = Math.max(...standardResources.map(r => r.stdCT));
+      const lineEff = lineStdCT / lineActualCT * 100;
+      const outputPerHour = 60 / lineActualCT;
+      const standardOutputPerHour = 60 / lineStdCT;
+      const outputPerShift = outputPerHour * (config.shiftMinute / 60);
+      const standardOutputPerShift = standardOutputPerHour * (config.shiftMinute / 60);
+      const lossMinPerPc = lineActualCT - lineStdCT;
+      const lossPartsPerShift = Math.max(0, standardOutputPerShift - outputPerShift);
+      const requiredCTForTarget = lineStdCT / (config.targetEff / 100);
+      const needReduceMin = Math.max(0, lineActualCT - requiredCTForTarget);
+
+      const topMachineLosses = machines.filter(m => m.diff > 0).sort((a, b) => b.diff - a.diff);
+      const topLoaderLosses = loaders.filter(l => l.diff > 0).sort((a, b) => b.diff - a.diff);
+      const allLossItems = [
+        ...topMachineLosses.map(m => ({ name: m.machine, type: `Machine ${m.process}`, machineType: m.machineType, std: m.std, actual: m.actual, diff: m.diff, variancePct: m.variancePct, status: m.status, process: m.process })),
+        ...topLoaderLosses.map(l => ({ name: l.name, type: "Loader", machineType: "Loader", std: l.std, actual: l.actual, diff: l.diff, variancePct: l.variancePct, status: l.status }))
+      ].sort((a, b) => b.diff - a.diff);
+
+      const balanceSummaries = processSummaries.filter(p => p.count > 1).map(p => {
+        let status;
+        if (p.spreadPct >= config.redPct) status = { label: "เสีย Balance สูง", cls: "bad" };
+        else if (p.spreadPct >= config.warnPct) status = { label: "ควรปรับ Balance", cls: "warn" };
+        else status = { label: "Balance ดี", cls: "ok" };
+        return { ...p, status };
+      });
+
+      const abnormalItems = buildAbnormalItems(machines, loaders, processSummaries, balanceSummaries, config);
+      const machineTypeSummary = buildMachineTypeSummary(machines, config);
+      const bufferRecommendations = buildBufferRecommendations(processSummaries, loaders, neck, lineActualCT, config);
+
+      latestReport = {
+        timestamp: new Date().toISOString(),
+        config,
+        warnings,
+        machines,
+        loaders,
+        processSummaries,
+        loaderResource,
+        resources,
+        neck,
+        lineActualCT,
+        lineStdCT,
+        lineEff,
+        outputPerHour,
+        standardOutputPerHour,
+        outputPerShift,
+        standardOutputPerShift,
+        lossMinPerPc,
+        lossPartsPerShift,
+        requiredCTForTarget,
+        needReduceMin,
+        allLossItems,
+        balanceSummaries,
+        abnormalItems,
+        machineTypeSummary,
+        bufferRecommendations
+      };
+
+      renderReport(latestReport);
+      $("exportCsvBtn").disabled = false;
+      $("printBtn").disabled = false;
+    }
+
+    function buildAbnormalItems(machines, loaders, processSummaries, balanceSummaries, config) {
+      const items = [];
+      machines.forEach(m => {
+        if (m.status.rank >= 2) {
+          items.push({
+            name: m.machine,
+            type: `Machine ${m.process}`,
+            machineType: m.machineType,
+            std: m.std,
+            actual: m.actual,
+            diff: m.diff,
+            variancePct: m.variancePct,
+            status: m.status,
+            advice: machineAdvice(m)
+          });
+        }
+      });
+
+      loaders.forEach(l => {
+        if (l.status.rank >= 2) {
+          items.push({
+            name: l.name,
+            type: "Loader Transfer",
+            machineType: "Loader",
+            std: l.std,
+            actual: l.actual,
+            diff: l.diff,
+            variancePct: l.variancePct,
+            status: l.status,
+            advice: loaderAdvice(l)
+          });
+        }
+      });
+
+      balanceSummaries.forEach(b => {
+        if (b.status.cls !== "ok") {
+          const slowest = b.machines.slice().sort((a, c) => c.actual - a.actual)[0];
+          items.push({
+            name: `${b.name} Balance`,
+            type: "Parallel Balance",
+            machineType: b.machineTypes.join(" / "),
+            std: b.minActual,
+            actual: b.maxActual,
+            diff: b.spread,
+            variancePct: b.spreadPct,
+            status: b.status,
+            advice: `ตรวจ ${slowest.machine} ซึ่งช้าสุดในกลุ่ม, เทียบโปรแกรม/Tool/Clamp/Sensor กับเครื่องที่เร็วสุด แล้วปรับ CT ให้ใกล้กัน`
+          });
+        }
+      });
+
+      processSummaries.forEach(p => {
+        const st = varianceStatus(p.variancePct, config.warnPct, config.redPct);
+        if (st.rank >= 2) {
+          items.push({
+            name: `${p.name} Effective CT`,
+            type: p.type,
+            machineType: p.machineTypes.join(" / "),
+            std: p.stdCT,
+            actual: p.actualCT,
+            diff: p.diff,
+            variancePct: p.variancePct,
+            status: st,
+            advice: p.count > 1 ? "ตรวจ Capacity รวมของ Process Parallel และหาสาเหตุเครื่องที่ Actual สูงกว่ากลุ่ม" : "ตรวจสาเหตุ Cycle Time สูง เช่น Program, Tool wear, Fixture, Sensor หรือ Waiting จาก Loader"
+          });
+        }
+      });
+
+      const unique = [];
+      const seen = new Set();
+      items.sort((a, b) => b.diff - a.diff).forEach(item => {
+        const key = `${item.name}|${item.type}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(item);
+        }
+      });
+      return unique;
+    }
+
+    function buildMachineTypeSummary(machines, config) {
+      const map = new Map();
+      machines.forEach(m => {
+        if (!map.has(m.machineType)) map.set(m.machineType, []);
+        map.get(m.machineType).push(m);
+      });
+      return Array.from(map.entries()).map(([type, list]) => {
+        const avgVariance = avg(list.map(m => m.variancePct));
+        const totalLoss = list.reduce((sum, m) => sum + Math.max(0, m.diff), 0);
+        const worst = list.slice().sort((a, b) => b.diff - a.diff)[0];
+        let status;
+        if (avgVariance >= config.redPct || totalLoss >= config.redPct / 100) status = { label: "Loss สูง", cls: "bad" };
+        else if (avgVariance >= config.warnPct || totalLoss > 0) status = { label: "ควรติดตาม", cls: "warn" };
+        else status = { label: "OK", cls: "ok" };
+        return { type, count: list.length, avgVariance, totalLoss, worst, status };
+      }).sort((a, b) => b.totalLoss - a.totalLoss || b.avgVariance - a.avgVariance);
+    }
+
+    function buildBufferRecommendations(processes, loaders, neck, lineActualCT, config) {
+      if (processes.length < 1) return [];
+      const recs = [];
+
+      const first = processes[0];
+      const firstTransfer = findLoaderForBoundary(loaders, "Infeed", first.name);
+      recs.push(makeEdgeBufferRecommendation({
+        from: "Infeed",
+        to: first.name,
+        upstream: null,
+        downstream: first,
+        transfer: firstTransfer,
+        neck,
+        lineActualCT,
+        type: "infeed",
+        index: -1
+      }));
+
+      for (let i = 0; i < processes.length - 1; i++) {
+        const up = processes[i];
+        const down = processes[i + 1];
+        const transfer = findLoaderForBoundary(loaders, up.name, down.name);
+        const reasons = [];
+        let score = 0;
+
+        const upIsNeck = neck.name === up.name;
+        const downIsNeck = neck.name === down.name;
+        const downLoad = down.actualCT / lineActualCT * 100;
+        const upLoad = up.actualCT / lineActualCT * 100;
+
+        if (downIsNeck) {
+          score += 45;
+          reasons.push("อยู่หน้าคอขวด ต้องกันคอขวดไม่ให้ Starve");
+        }
+        if (upIsNeck) {
+          score += 28;
+          reasons.push("อยู่หลังคอขวด ช่วยป้องกันคอขวดถูก Block จากปลายทาง");
+        }
+        if (down.actualCT > up.actualCT) {
+          const deltaPct = (down.actualCT - up.actualCT) / lineActualCT * 100;
+          score += Math.min(28, Math.max(5, deltaPct * 0.7));
+          reasons.push(`Downstream ช้ากว่า Upstream ${fmt(down.actualCT - up.actualCT)} min/pc มีโอกาส WIP สะสมก่อน ${down.name}`);
+        } else if (up.actualCT > down.actualCT) {
+          const deltaPct = (up.actualCT - down.actualCT) / lineActualCT * 100;
+          score += Math.min(16, Math.max(3, deltaPct * 0.35));
+          reasons.push(`Upstream ช้ากว่า Downstream ${fmt(up.actualCT - down.actualCT)} min/pc มีโอกาส ${down.name} รอชิ้นงาน`);
+        }
+        if (down.count > 1) {
+          score += 12;
+          reasons.push("เป็นจุดเข้า Parallel ควรมี WIP ให้ Selector/Loader กระจายงานไปเครื่องที่ว่าง");
+        }
+        if (up.count > 1 && down.count === 1) {
+          score += 8;
+          reasons.push("เป็นจุดรวมจาก Parallel เข้า Single ควรมี Decoupling เพื่อลด Blocking");
+        }
+        if (downLoad >= 95) {
+          score += 18;
+          reasons.push(`${down.name} Load ใกล้ Neck ${fmt(downLoad, 1)}%`);
+        } else if (downLoad >= 85) {
+          score += 8;
+          reasons.push(`${down.name} Load สูง ${fmt(downLoad, 1)}%`);
+        }
+        if (transfer) {
+          if (transfer.status.rank >= 2) {
+            score += 20;
+            reasons.push(`Loader Transfer ${transfer.name} เกิน Std ${pct(transfer.variancePct)}`);
+          }
+          if (transfer.actual / lineActualCT >= 0.15) {
+            score += 6;
+            reasons.push(`เวลา Loader ${fmt(transfer.actual)} min คิดเป็น ${fmt(transfer.actual / lineActualCT * 100, 1)}% ของ Line CT`);
+          }
+        }
+
+        score = Math.min(100, Math.round(score));
+        const level = bufferLevel(score);
+        const suggestedPcs = level.protectionMin > 0 ? Math.max(1, Math.ceil(level.protectionMin / lineActualCT)) : 0;
+        recs.push({
+          index: i,
+          from: up.name,
+          to: down.name,
+          position: `${up.name} → ${down.name}`,
+          score,
+          level,
+          suggestedPcs,
+          protectionMin: level.protectionMin,
+          reasons,
+          upstream: up,
+          downstream: down,
+          transfer,
+          type: "between"
+        });
+      }
+
+      const last = processes[processes.length - 1];
+      const lastTransfer = findLoaderForBoundary(loaders, last.name, "Outfeed");
+      recs.push(makeEdgeBufferRecommendation({
+        from: last.name,
+        to: "Outfeed",
+        upstream: last,
+        downstream: null,
+        transfer: lastTransfer,
+        neck,
+        lineActualCT,
+        type: "outfeed",
+        index: processes.length - 1
+      }));
+
+      return recs.sort((a, b) => b.score - a.score);
+    }
+
+    function makeEdgeBufferRecommendation({ from, to, upstream, downstream, transfer, neck, lineActualCT, type, index }) {
+      const reasons = [];
+      let score = 0;
+      if (type === "infeed" && downstream) {
+        if (neck.name === downstream.name) {
+          score += 48;
+          reasons.push("Buffer วัตถุดิบก่อนคอขวด ช่วยกันคอขวดไม่ให้ Starve ตั้งแต่ต้นไลน์");
+        }
+        const load = downstream.actualCT / lineActualCT * 100;
+        if (load >= 95) {
+          score += 15;
+          reasons.push(`${downstream.name} Load ใกล้ Neck ${fmt(load, 1)}%`);
+        }
+      }
+      if (type === "outfeed" && upstream) {
+        if (neck.name === upstream.name) {
+          score += 30;
+          reasons.push("Buffer ปลายไลน์หลังคอขวด ช่วยลดโอกาสคอขวดถูก Block จาก Outfeed/Pack/Inspection ถัดไป");
+        }
+        const load = upstream.actualCT / lineActualCT * 100;
+        if (load >= 95) {
+          score += 10;
+          reasons.push(`${upstream.name} Load ใกล้ Neck ${fmt(load, 1)}%`);
+        }
+      }
+      if (transfer) {
+        if (transfer.status.rank >= 2) {
+          score += 20;
+          reasons.push(`Loader Transfer ${transfer.name} เกิน Std ${pct(transfer.variancePct)}`);
+        }
+        if (transfer.actual / lineActualCT >= 0.15) {
+          score += 6;
+          reasons.push(`เวลา Loader ${fmt(transfer.actual)} min คิดเป็น ${fmt(transfer.actual / lineActualCT * 100, 1)}% ของ Line CT`);
+        }
+      }
+      score = Math.min(100, Math.round(score));
+      const level = bufferLevel(score);
+      const suggestedPcs = level.protectionMin > 0 ? Math.max(1, Math.ceil(level.protectionMin / lineActualCT)) : 0;
+      return {
+        index,
+        from,
+        to,
+        position: `${from} → ${to}`,
+        score,
+        level,
+        suggestedPcs,
+        protectionMin: level.protectionMin,
+        reasons,
+        upstream,
+        downstream,
+        transfer,
+        type
+      };
+    }
+
+    function findLoaderForBoundary(loaders, from, to) {
+      return loaders.find(l => l.from === from && l.to === to) || loaders.find(l => String(l.name).includes(from) && String(l.name).includes(to));
+    }
+
+    function machineAdvice(m) {
+      const common = "ตรวจ CT แยก step: Load/Unload, Cycle auto, Clamp, Sensor, Waiting และเทียบกับ Standard work";
+      if (m.format === "parallel") return `${common}; สำหรับ Parallel ให้เทียบ condition กับเครื่องใน Process เดียวกัน เช่น program, tool, pressure, jig, sensor และเวลารอ Loader`;
+      if (m.machineType === "Washing") return `${common}; โฟกัส spray pressure, drain/dry time, basket/chute full และเวลา loading`;
+      if (m.machineType === "Inspection" || m.machineType === "เครื่องวัดขนาดชิ้นงาน") return `${common}; โฟกัส measurement program, probe delay, recheck rate และ waiting จาก queue`;
+      if (m.machineType === "Robot rawmat") return `${common}; โฟกัส path, gripper, handshake, part present sensor และ raw material supply`;
+      return `${common}; ตรวจ machining program, feed/speed, tool wear, fixture clamp, air/hydraulic และ waiting/handshake กับ Loader`;
+    }
+
+    function loaderAdvice(l) {
+      return "ตรวจระยะทาง, waiting handshake, gripper, speed/acceleration, sensor confirmation และจังหวะรับ-ส่งชิ้นงานของ Loader";
+    }
+
+    function renderReport(report) {
+      $("resultPanel").classList.remove("hidden");
+      renderSummaryCards(report);
+      renderAlerts(report);
+      renderLineAnimation(report);
+      renderBufferRecommendations(report);
+      renderBars(report);
+      renderRecommendations(report);
+      renderProcessTable(report);
+      renderAbnormalTable(report);
+      renderBalanceTable(report);
+      renderLoaderAnalysis(report);
+      renderMachineTypeSummary(report);
+      renderAdditionalData(report);
+      updateInlineStatus();
+      setTimeout(() => $("resultPanel").scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    }
+
+    function renderSummaryCards(r) {
+      const topBuffer = r.bufferRecommendations[0];
+      $("summaryCards").innerHTML = `
+        <div class="metric neck-card">
+          <div class="label">Neck Process / Resource</div>
+          <div class="value">${escapeHtml(r.neck.name)}</div>
+          <div class="sub">Actual CT ${fmt(r.neck.actualCT)} min/pc</div>
+        </div>
+        <div class="metric">
+          <div class="label">Line CT: Std → Actual</div>
+          <div class="value">${fmt(r.lineStdCT)} → ${fmt(r.lineActualCT)}</div>
+          <div class="sub">Loss ${fmt(r.lossMinPerPc)} min/pc</div>
+        </div>
+        <div class="metric">
+          <div class="label">Line EFF. เทียบ Std</div>
+          <div class="value">${fmt(r.lineEff, 1)}%</div>
+          <div class="sub">Target ${fmt(r.config.targetEff, 1)}%</div>
+        </div>
+        <div class="metric">
+          <div class="label">Output Estimate</div>
+          <div class="value">${fmt(r.outputPerHour, 1)} pcs/hr</div>
+          <div class="sub">${fmt(r.outputPerShift, 0)} pcs/shift (${fmt(r.config.shiftMinute, 0)} min)</div>
+        </div>
+        <div class="metric buffer-card">
+          <div class="label">Top Buffer Point</div>
+          <div class="value">${topBuffer && topBuffer.score >= 25 ? escapeHtml(topBuffer.position) : "-"}</div>
+          <div class="sub">${topBuffer && topBuffer.score >= 25 ? `${topBuffer.level.label} • ${topBuffer.suggestedPcs} pcs` : "ยังไม่พบจุดที่ต้องเร่งเพิ่ม Buffer"}</div>
+        </div>
+      `;
+    }
+
+    function renderAlerts(r) {
+      const alerts = [];
+      const effClass = r.lineEff >= r.config.targetEff ? "good" : (r.lineEff >= r.config.targetEff - 5 ? "warn" : "bad");
+      if (r.lineEff >= r.config.targetEff) {
+        alerts.push({ cls: "good", text: `Line EFF. อยู่ที่ ${fmt(r.lineEff, 1)}% สูงกว่า Target ${fmt(r.config.targetEff, 1)}% แต่ยังควรควบคุม Neck Process คือ ${r.neck.name}` });
+      } else {
+        alerts.push({ cls: effClass, text: `Line EFF. อยู่ที่ ${fmt(r.lineEff, 1)}% ต่ำกว่า Target ${fmt(r.config.targetEff, 1)}% ต้องลด Line CT อย่างน้อย ${fmt(r.needReduceMin)} min/pc เพื่อให้ถึง Target` });
+      }
+
+      if (r.neck.name.includes("LOADER")) {
+        alerts.push({ cls: "bad", text: `Loader เป็นคอขวดของไลน์: Actual Loader CT = ${fmt(r.loaderResource.actualCT)} min/pc ควรปรับเส้นทาง/Sequence/Handshake หรือพิจารณาแยกโหลดงาน` });
+      } else {
+        alerts.push({ cls: "bad", text: `คอขวดหลักคือ ${r.neck.name}: Actual Effective CT = ${fmt(r.neck.actualCT)} min/pc จำกัด Output ไลน์ไว้ที่ประมาณ ${fmt(r.outputPerHour, 1)} pcs/hr` });
+      }
+
+      const topBuffer = r.bufferRecommendations[0];
+      if (topBuffer && topBuffer.score >= 25) {
+        alerts.push({ cls: topBuffer.score >= 70 ? "bad" : "warn", text: `แนะนำ Buffer จุดแรกที่ ${topBuffer.position}: ${topBuffer.level.label}, เริ่มต้นประมาณ ${topBuffer.suggestedPcs} pcs เพราะ ${topBuffer.reasons.slice(0, 2).join("; ")}` });
+      }
+
+      const abnormalCount = r.abnormalItems.length;
+      if (abnormalCount > 0) alerts.push({ cls: "warn", text: `พบจุดผิดปกติ/ควรเฝ้าระวัง ${abnormalCount} รายการ ดูรายละเอียดในตารางจุดผิดปกติ` });
+      else alerts.push({ cls: "good", text: "ไม่พบรายการที่เกินเกณฑ์เตือนจาก Standard Time ที่ตั้งไว้" });
+
+      r.warnings.forEach(w => alerts.push({ cls: "warn", text: w }));
+      $("mainAlerts").innerHTML = alerts.map(a => `<div class="alert-box ${a.cls}">${escapeHtml(a.text)}</div>`).join("");
+    }
+
+    function renderLineAnimation(r) {
+      const processByName = new Map(r.processSummaries.map(p => [p.name, p]));
+      const bufferByPosition = new Map(r.bufferRecommendations.map(b => [b.position, b]));
+      const isLoaderNeck = r.neck.name.includes("LOADER");
+      const animDuration = Math.min(28, Math.max(8, r.lineActualCT * 12));
+      const loaderStatus = r.loaderResource.status;
+      const stageCount = r.processSummaries.length;
+      const flowWidth = Math.max(1120, stageCount * 160 + Math.max(0, stageCount - 1) * 88 + 40);
+      const travel = Math.max(240, flowWidth - 90);
+
+      const elements = [];
+      r.processSummaries.forEach((p, idx) => {
+        const load = r.lineActualCT > 0 ? p.actualCT / r.lineActualCT * 100 : 0;
+        const pStatus = varianceStatus(p.variancePct, r.config.warnPct, r.config.redPct);
+        const stageClass = r.neck.name === p.name ? "neck" : (pStatus.rank >= 3 ? "bad" : (pStatus.rank >= 2 || load >= 95 ? "warn" : "ok"));
+        const slowestActual = Math.max(...p.machines.map(m => m.actual));
+        const machineChips = p.machines.slice(0, 4).map(m => {
+          const slowest = p.count > 1 && m.actual === slowestActual ? " slowest" : "";
+          const chipClass = `${m.status.cls}${slowest}`;
+          return `<div class="machine-chip ${chipClass}" title="${escapeHtml(m.machineType)}"><span>${escapeHtml(m.machine)}</span><strong>${fmt(m.actual)} min</strong></div>`;
+        }).join("") + (p.machines.length > 4 ? `<div class="machine-chip"><span>+${p.machines.length - 4} machines</span><strong></strong></div>` : "");
+        const statusLabel = r.neck.name === p.name ? tag("NECK", "neck") : tag(pStatus.label, pStatus.cls);
+        elements.push(`
+          <div class="flow-stage ${stageClass}">
+            <div class="flow-stage-title">
+              <span class="op-name">${escapeHtml(p.name)}</span>
+              <span class="op-type">${p.count > 1 ? `${p.count} M/C Parallel` : "Single"}</span>
+            </div>
+            ${statusLabel}
+            <div class="machine-type-line" title="${escapeHtml(p.machineTypes.join(" / "))}">${escapeHtml(p.machineTypes.join(" / "))}</div>
+            <div class="machine-chip-list">${machineChips}</div>
+            <div class="station-metrics">
+              <span>Effective CT: <strong>${fmt(p.actualCT)} min/pc</strong></span>
+              <span>Load vs Neck: <strong>${fmt(load, 1)}%</strong></span>
+              <span>Output: <strong>${fmt(60 / p.actualCT, 1)} pcs/hr</strong></span>
+            </div>
+          </div>
+        `);
+        if (idx < r.processSummaries.length - 1) {
+          const next = r.processSummaries[idx + 1];
+          const b = bufferByPosition.get(`${p.name} → ${next.name}`);
+          const showBuffer = b && b.score >= 25;
+          elements.push(`
+            <div class="connector" title="${showBuffer ? escapeHtml(b.reasons.join("; ")) : "Transfer"}">
+              ${showBuffer ? `
+                <div class="buffer-node ${b.level.short}">
+                  <div class="buffer-stack"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                  <div class="buffer-label">Buffer ${b.suggestedPcs} pcs</div>
+                </div>` : ""}
+            </div>
+          `);
+        }
+      });
+
+      $("lineAnimation").innerHTML = `
+        <div class="line-animation ${isLoaderNeck ? "loader-neck" : ""}" style="--anim-duration:${animDuration.toFixed(2)}s; --delay2:${(-animDuration / 3).toFixed(2)}s; --delay3:${(-animDuration * 2 / 3).toFixed(2)}s; --flow-min:${flowWidth}px; --travel:${travel}px;">
+          <div class="flow-topline">
+            <div>
+              <strong>Line CT = ${fmt(r.lineActualCT)} min/pc • Output ≈ ${fmt(r.outputPerHour, 1)} pcs/hr</strong>
+              <span>Animation ถูกย่อสเกลเพื่อให้เห็น Flow เร็วขึ้น ไม่ใช่เวลาจริง 1:1</span><br>
+              <span>Machine count: ${r.config.machineCount} • Loader: ${fmt(r.loaderResource.actualCT)} min/pc ${isLoaderNeck ? "• เป็นคอขวด" : "• Status " + loaderStatus.label}</span>
+            </div>
+            <div class="flow-legend">
+              <span class="legend-dot ok">ปกติ</span>
+              <span class="legend-dot warn">เฝ้าระวัง</span>
+              <span class="legend-dot neck">Neck</span>
+              <span class="legend-dot loader">Loader</span>
+              <span class="legend-dot buffer">Buffer</span>
+            </div>
+          </div>
+          <div class="flow-strip" style="--flow-min:${flowWidth}px;">
+            ${elements.join("")}
+            <div class="part-dot p1" title="Part flow"></div>
+            <div class="part-dot p2" title="Part flow"></div>
+            <div class="part-dot p3" title="Part flow"></div>
+            <div class="loader-car" title="Loader"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBufferRecommendations(r) {
+      const top = r.bufferRecommendations.filter(b => b.score >= 25).slice(0, 4);
+      if (top.length === 0) {
+        $("bufferCards").innerHTML = `<div class="rec-card"><strong>ยังไม่พบจุดที่ต้องเร่งเพิ่ม Buffer</strong><p>จาก CT ที่กรอก จุดต่าง ๆ ยังไม่แสดงความเสี่ยง Buffer สูงตาม heuristic ที่ตั้งไว้ แต่ยังควรใช้ข้อมูล Downtime และ Minor stop ประกอบก่อนตัดสินใจจริง</p></div>`;
+      } else {
+        $("bufferCards").innerHTML = top.map((b, i) => `
+          <div class="rec-card ${b.level.cls}">
+            <strong>Priority ${i + 1}: ${escapeHtml(b.position)} ${tag(b.level.label, b.level.cls)}</strong>
+            <p>แนะนำเริ่มต้น ${b.suggestedPcs} pcs หรือประมาณ ${fmt(b.protectionMin, 0)} นาทีของ Line CT. เหตุผล: ${escapeHtml(b.reasons.slice(0, 3).join("; "))}</p>
+          </div>
+        `).join("");
+      }
+
+      const body = $("bufferTable").querySelector("tbody");
+      body.innerHTML = r.bufferRecommendations.map(b => `
+        <tr>
+          <td><strong>${escapeHtml(b.position)}</strong></td>
+          <td class="num">${fmt(b.score, 0)}</td>
+          <td>${tag(b.level.label, b.level.cls)}</td>
+          <td class="num"><strong>${b.suggestedPcs || "-"}</strong></td>
+          <td>${escapeHtml(b.reasons.length ? b.reasons.join("; ") : "ความเสี่ยงต่ำเมื่อเทียบกับจุดอื่น")}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderBars(r) {
+      const maxCT = Math.max(...r.resources.map(x => x.actualCT));
+      $("processBars").innerHTML = r.resources.map((res, idx) => {
+        const width = maxCT > 0 ? Math.max(2, res.actualCT / maxCT * 100) : 0;
+        const isNeck = idx === 0;
+        return `
+          <div class="bar-row">
+            <div class="bar-label">${escapeHtml(res.name)} ${isNeck ? tag("NECK", "neck") : ""}</div>
+            <div class="bar-track"><div class="bar-fill ${isNeck ? "neck-fill" : ""}" style="width:${width}%"></div></div>
+            <div class="num"><strong>${fmt(res.actualCT)}</strong> min</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderRecommendations(r) {
+      const topLoss = r.allLossItems[0];
+      const topBalance = r.balanceSummaries.slice().sort((a, b) => b.spreadPct - a.spreadPct)[0];
+      const topLoader = r.loaders.slice().sort((a, b) => b.diff - a.diff)[0];
+      const topBuffer = r.bufferRecommendations[0];
+      const recs = [];
+
+      if (r.neck.name.includes("LOADER")) {
+        recs.push({
+          title: "Priority 1: แก้ Loader ก่อน",
+          text: `ลด Loader CT จาก ${fmt(r.loaderResource.actualCT)} min/pc โดยดู Transfer ที่ช้าสุดคือ ${topLoader ? topLoader.name : "-"} และปรับ path, speed, gripper, waiting handshake, sensor confirm หรือเพิ่ม buffer ระหว่าง OP`
+        });
+      } else {
+        recs.push({
+          title: `Priority 1: แก้ ${r.neck.name}`,
+          text: `Process นี้เป็นคอขวดด้วย Actual Effective CT ${fmt(r.neck.actualCT)} min/pc ให้แยกเวลาย่อยเป็น cutting/load/unload/waiting แล้วลด step ที่สูงสุดก่อน`
+        });
+      }
+
+      if (topBuffer && topBuffer.score >= 25) {
+        recs.push({
+          title: `Buffer Priority: ${topBuffer.position}`,
+          text: `แนะนำ Buffer เริ่มต้น ${topBuffer.suggestedPcs} pcs (${topBuffer.level.label}) เพื่อ ${topBuffer.reasons[0] || "ลดความเสี่ยง flow สะดุด"}`
+        });
+      }
+
+      if (topLoss) {
+        recs.push({
+          title: `Loss สูงสุดรายจุด: ${topLoss.name}`,
+          text: `Actual สูงกว่า Std ${fmt(topLoss.diff)} min (${pct(topLoss.variancePct)}) ให้เริ่ม Kaizen ที่จุดนี้เพราะคืนเวลาได้เร็วที่สุด`
+        });
+      }
+
+      if (topBalance && topBalance.spreadPct >= r.config.warnPct) {
+        recs.push({
+          title: `Balance Parallel: ${topBalance.name}`,
+          text: `Spread ${fmt(topBalance.spreadPct, 1)}% ระหว่างเครื่องเร็วสุด ${fmt(topBalance.minActual)} min และช้าสุด ${fmt(topBalance.maxActual)} min ควรทำ standardize condition ของเครื่องในกลุ่ม`
+        });
+      } else {
+        recs.push({ title: "Parallel Balance", text: "เครื่อง Parallel มี Balance อยู่ในเกณฑ์ที่ตั้งไว้ ให้รักษา condition และติดตาม trend รายชั่วโมง" });
+      }
+
+      if (r.needReduceMin > 0) {
+        recs.push({ title: "Gap เพื่อให้ถึง Target EFF.", text: `ต้องลด Line CT อย่างน้อย ${fmt(r.needReduceMin)} min/pc จากคอขวดหรือ Loader เพื่อให้ EFF. ถึง ${fmt(r.config.targetEff, 1)}%` });
+      }
+
+      $("recommendations").innerHTML = recs.slice(0, 6).map(rec => `
+        <div class="rec-card">
+          <strong>${escapeHtml(rec.title)}</strong>
+          <p>${escapeHtml(rec.text)}</p>
+        </div>
+      `).join("");
+    }
+
+    function renderProcessTable(r) {
+      const body = $("processSummaryTable").querySelector("tbody");
+      const maxCT = r.lineActualCT;
+      body.innerHTML = r.resources.map((res, idx) => {
+        const load = res.actualCT / maxCT * 100;
+        const status = idx === 0 ? { label: "NECK", cls: "neck" } : (load >= 95 ? { label: "ใกล้คอขวด", cls: "warn" } : { label: "OK", cls: "ok" });
+        const machineTypes = res.machineTypes ? res.machineTypes.join(" / ") : "Loader";
+        return `
+          <tr>
+            <td><strong>${escapeHtml(res.name)}</strong></td>
+            <td>${escapeHtml(res.type)}</td>
+            <td>${escapeHtml(machineTypes)}</td>
+            <td class="num">${fmt(res.stdCT)}</td>
+            <td class="num"><strong>${fmt(res.actualCT)}</strong></td>
+            <td class="num">${fmt(60 / res.actualCT, 1)}</td>
+            <td class="num">${fmt(load, 1)}%</td>
+            <td>${tag(status.label, status.cls)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderAbnormalTable(r) {
+      const body = $("abnormalTable").querySelector("tbody");
+      if (r.abnormalItems.length === 0) {
+        body.innerHTML = `<tr><td colspan="9">ไม่พบจุดผิดปกติตามเกณฑ์ที่ตั้งไว้</td></tr>`;
+        return;
+      }
+      body.innerHTML = r.abnormalItems.map(item => `
+        <tr>
+          <td><strong>${escapeHtml(item.name)}</strong></td>
+          <td>${escapeHtml(item.type)}</td>
+          <td>${escapeHtml(item.machineType || "-")}</td>
+          <td class="num">${fmt(item.std)}</td>
+          <td class="num"><strong>${fmt(item.actual)}</strong></td>
+          <td class="num">${fmt(item.diff)}</td>
+          <td class="num">${pct(item.variancePct)}</td>
+          <td>${tag(item.status.label, item.status.cls)}</td>
+          <td>${escapeHtml(item.advice)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderBalanceTable(r) {
+      const body = $("balanceTable").querySelector("tbody");
+      if (r.balanceSummaries.length === 0) {
+        body.innerHTML = `<tr><td colspan="6">ไม่มี Process แบบ Parallel สำหรับวิเคราะห์ Balance</td></tr>`;
+        return;
+      }
+      body.innerHTML = r.balanceSummaries.map(b => `
+        <tr>
+          <td><strong>${escapeHtml(b.name)}</strong></td>
+          <td class="num">${fmt(b.minActual)}</td>
+          <td class="num">${fmt(b.maxActual)}</td>
+          <td class="num">${fmt(b.avgActual)}</td>
+          <td class="num">${fmt(b.spread)} min / ${fmt(b.spreadPct, 1)}%</td>
+          <td>${tag(b.status.label, b.status.cls)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderLoaderAnalysis(r) {
+      const loaderModeText = r.config.loaderMode === "shared" ? "Loader ตัวเดียว วิ่งเป็น Cycle รวม" : "แต่ละ Transfer แยกกัน ใช้เวลาสูงสุด";
+      const highestActual = r.loaders.slice().sort((a, b) => b.actual - a.actual)[0];
+      const highestLoss = r.loaders.slice().sort((a, b) => b.diff - a.diff)[0];
+      $("loaderSummary").innerHTML = `
+        <div class="alert-box ${r.neck.name.includes("LOADER") ? "bad" : "good"}">
+          <strong>${escapeHtml(loaderModeText)}</strong><br>
+          Loader CT ที่ใช้คำนวณ = ${fmt(r.loaderResource.actualCT)} min/pc, Output เทียบ Loader = ${fmt(60 / r.loaderResource.actualCT, 1)} pcs/hr<br>
+          Transfer ช้าที่สุด = ${highestActual ? escapeHtml(highestActual.name) : "-"} (${fmt(highestActual ? highestActual.actual : NaN)} min), Loss สูงสุด = ${highestLoss ? escapeHtml(highestLoss.name) : "-"} (+${fmt(highestLoss ? highestLoss.diff : NaN)} min)
+        </div>
+      `;
+
+      const body = $("loaderSummaryTable").querySelector("tbody");
+      body.innerHTML = r.loaders.slice().sort((a, b) => b.actual - a.actual).map(l => `
+        <tr>
+          <td>${escapeHtml(l.name)}</td>
+          <td class="num">${fmt(l.std)}</td>
+          <td class="num"><strong>${fmt(l.actual)}</strong></td>
+          <td class="num">${fmt(l.diff)}</td>
+          <td class="num">${pct(l.variancePct)}</td>
+          <td>${tag(l.status.label, l.status.cls)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderMachineTypeSummary(r) {
+      const body = $("machineTypeTable").querySelector("tbody");
+      body.innerHTML = r.machineTypeSummary.map(t => `
+        <tr>
+          <td><strong>${escapeHtml(t.type)}</strong></td>
+          <td class="num">${t.count}</td>
+          <td class="num">${pct(t.avgVariance)}</td>
+          <td class="num">${fmt(t.totalLoss)}</td>
+          <td>${escapeHtml(t.worst ? `${t.worst.machine} (${fmt(t.worst.diff)} min)` : "-")}</td>
+          <td>${tag(t.status.label, t.status.cls)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderAdditionalData(r) {
+      const cards = [
+        { title: "Buffer validation", text: "เก็บ WIP จริงก่อน/หลังจุดที่แนะนำ Buffer, จำนวนครั้งที่คอขวด Starve/Block และเวลารอ Loader เพื่อกำหนดจำนวน Buffer ที่เหมาะกับพื้นที่จริง" },
+        { title: "แยกเวลาย่อยของ CT", text: "เก็บ Load, Unload, Cutting, Clamp/Unclamp, Tool change, Air blow, Gauging, Waiting และ Handshake เพื่อรู้ว่า Loss เกิดจากขั้นตอนไหน" },
+        { title: "Downtime / Minor Stop", text: "บันทึกเหตุหยุดย่อยรายเครื่อง เช่น sensor miss, chute full, part jam, alarm, air pressure, coolant, chip conveyor เพื่อทำ Pareto Loss" },
+        { title: "Quality Loss", text: "เก็บ NG, Rework, Recheck, Tool offset adjustment เพราะ CT ที่เร็วแต่เกิด defect จะทำให้ EFF. จริงลดลง" },
+        { title: "Trend ตามเวลา", text: "บันทึก Actual CT รายชั่วโมงหรือราย lot เพื่อดู drift จาก tool wear, temperature, operator change หรือ material variation" },
+        { title: "Yamazumi / Line Balance", text: "นำเวลาย่อยไปทำ Yamazumi chart เพื่อย้ายงาน ลด waiting และปรับ workload ของเครื่อง Parallel ให้สมดุล" }
+      ];
+      $("additionalData").innerHTML = cards.map(c => `
+        <div class="rec-card">
+          <strong>${escapeHtml(c.title)}</strong>
+          <p>${escapeHtml(c.text)}</p>
+        </div>
+      `).join("");
+    }
+
+    function showErrors(errors, warnings = []) {
+      $("errorPanel").classList.remove("hidden");
+      $("resultPanel").classList.add("hidden");
+      $("errorPanel").innerHTML = `
+        <h2>ตรวจสอบข้อมูลก่อนวิเคราะห์</h2>
+        <div class="alert-box bad">พบข้อมูลไม่ครบหรือไม่ถูกต้อง ${errors.length} รายการ</div>
+        <ul>${errors.slice(0, 35).map(e => `<li>${escapeHtml(e)}</li>`).join("")}</ul>
+        ${errors.length > 35 ? `<p class="note">และอีก ${errors.length - 35} รายการ...</p>` : ""}
+        ${warnings.length ? `<div class="alert-box warn"><strong>คำเตือน</strong><ul>${warnings.map(w => `<li>${escapeHtml(w)}</li>`).join("")}</ul></div>` : ""}
+      `;
+      $("errorPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function avg(arr) {
+      if (!arr.length) return NaN;
+      return arr.reduce((s, x) => s + x, 0) / arr.length;
+    }
+
+    function fillDemoData() {
+      machineRows = clone(DEFAULT_MACHINE_ROWS);
+      const demoByProcess = {
+        OP10: [{ machine: "OP10", std: 0.70, actual: 0.73 }],
+        OP20: [
+          { machine: "OP20A", std: 0.63, actual: 0.65 },
+          { machine: "OP20B", std: 0.63, actual: 0.80 },
+          { machine: "OP20C", std: 0.63, actual: 0.62 }
+        ],
+        OP30: [{ machine: "OP30", std: 0.75, actual: 0.77 }],
+        OP40: [
+          { machine: "OP40A", std: 0.67, actual: 0.68 },
+          { machine: "OP40B", std: 0.67, actual: 0.70 },
+          { machine: "OP40C", std: 0.67, actual: 0.83 }
+        ],
+        OP50: [
+          { machine: "OP50A", std: 0.60, actual: 0.62 },
+          { machine: "OP50B", std: 0.60, actual: 0.60 }
+        ],
+        OP60: [{ machine: "OP60", std: 0.73, actual: 0.78 }],
+        OP70: [{ machine: "OP70", std: 0.70, actual: 0.72 }],
+        OP80: [{ machine: "OP80", std: 0.75, actual: 0.90 }],
+        OP90: [{ machine: "OP90", std: 0.67, actual: 0.68 }],
+        OP100: [{ machine: "OP100", std: 0.63, actual: 0.65 }]
+      };
+      machineRows.forEach(row => {
+        const data = demoByProcess[row.process] || [];
+        if (row.format === "parallel") {
+          row.parallelCount = data.length || row.parallelCount || 2;
+          row.machines = data.map(d => ({ machine: d.machine, std: String(d.std), actual: String(d.actual) }));
+        } else if (data[0]) {
+          row.machine = data[0].machine;
+          row.std = String(data[0].std);
+          row.actual = String(data[0].actual);
+        }
+      });
+      loaderRows = buildDefaultLoaderRowsFromMachineRows(machineRows);
+      const loaderStd = [0.07, 0.08, 0.07, 0.08, 0.07, 0.08, 0.07, 0.08, 0.07, 0.07, 0.08];
+      const loaderAct = [0.08, 0.09, 0.07, 0.10, 0.08, 0.10, 0.07, 0.14, 0.09, 0.08, 0.09];
+      loaderRows.forEach((l, i) => {
+        l.use = true;
+        l.std = String(loaderStd[i] ?? 0.08);
+        l.actual = String(loaderAct[i] ?? 0.09);
+      });
+      renderMachineTable();
+      renderLoaderTable();
+      $("resultPanel").classList.add("hidden");
+      $("errorPanel").classList.add("hidden");
+      latestReport = null;
+      $("exportCsvBtn").disabled = true;
+      $("printBtn").disabled = true;
+    }
+
+    function clearTimes() {
+      syncMachineRowsFromInputs();
+      syncLoaderRowsFromInputs();
+      machineRows.forEach(m => {
+        if (m.format === "parallel") {
+          m.machines.forEach(d => { d.std = ""; d.actual = ""; });
+        } else {
+          m.std = "";
+          m.actual = "";
+        }
+      });
+      loaderRows.forEach(l => { l.std = ""; l.actual = ""; l.use = true; });
+      renderMachineTable();
+      renderLoaderTable();
+      $("resultPanel").classList.add("hidden");
+      $("errorPanel").classList.add("hidden");
+      latestReport = null;
+      $("exportCsvBtn").disabled = true;
+      $("printBtn").disabled = true;
+    }
+
+    function collectInputState() {
+      syncMachineRowsFromInputs();
+      syncLoaderRowsFromInputs();
+      normalizeAllMachineRows();
+      return {
+        version: "3.0-process-parallel-machine-details-minutes-buffer",
+        config: {
+          machineCount: totalMachineCount(machineRows),
+          warnPct: $("warnPct").value,
+          redPct: $("redPct").value,
+          targetEff: $("targetEff").value,
+          shiftMinute: $("shiftMinute").value,
+          loaderMode: $("loaderMode").value
+        },
+        machines: machineRows,
+        loaders: loaderRows
+      };
+    }
+
+    function rowsFromStateMachines(items) {
+      const arr = Array.isArray(items) ? items : [];
+      if (arr.some(m => Array.isArray(m.machines) || m.parallelCount || m.count)) {
+        return arr.map((m, i) => normalizeMachineRow(m, i));
+      }
+      const map = new Map();
+      const order = [];
+      arr.forEach((m, i) => {
+        const process = String(m.process || m.group || inferProcessFromMachine(m.machine || `MC${i + 1}`)).trim() || `OP${(i + 1) * 10}`;
+        if (!map.has(process)) {
+          map.set(process, []);
+          order.push(process);
+        }
+        map.get(process).push(m);
+      });
+      const rows = order.map((process, rowIndex) => {
+        const list = map.get(process);
+        const isParallel = list.length > 1 || list.some(m => (m.format || m.type) === "parallel");
+        const machineType = list[0]?.machineType || MACHINE_TYPES[0];
+        if (isParallel) {
+          return normalizeMachineRow({
+            process,
+            format: "parallel",
+            machineType,
+            parallelCount: list.length,
+            machines: list.map((m, i) => ({
+              machine: m.machine || defaultMachineName(process, i),
+              std: m.std ?? "",
+              actual: m.actual ?? ""
+            }))
+          }, rowIndex);
+        }
+        const only = list[0] || {};
+        return normalizeMachineRow({
+          process,
+          format: "single",
+          machineType,
+          machine: only.machine || process,
+          std: only.std ?? "",
+          actual: only.actual ?? ""
+        }, rowIndex);
+      });
+      return rows.length ? rows : [blankMachineRow(1)];
+    }
+
+    function applyInputState(state) {
+      if (!state || !state.machines) throw new Error("รูปแบบ JSON ไม่ถูกต้อง");
+      if (state.config) {
+        $("machineCount").value = state.config.machineCount ?? state.machines.length ?? $("machineCount").value;
+        $("warnPct").value = state.config.warnPct ?? $("warnPct").value;
+        $("redPct").value = state.config.redPct ?? $("redPct").value;
+        $("targetEff").value = state.config.targetEff ?? $("targetEff").value;
+        $("shiftMinute").value = state.config.shiftMinute ?? $("shiftMinute").value;
+        $("loaderMode").value = state.config.loaderMode ?? $("loaderMode").value;
+      }
+      machineRows = rowsFromStateMachines(state.machines);
+      if (!machineRows.length) machineRows = [blankMachineRow(1)];
+      loaderRows = (state.loaders || buildDefaultLoaderRowsFromMachineRows(machineRows)).map((l, i) => ({
+        id: l.id || `LD_${i + 1}`,
+        use: l.use !== false,
+        name: l.name || inferLoaderName(l, i),
+        from: l.from || inferLoaderFromTo(l, i).from,
+        to: l.to || inferLoaderFromTo(l, i).to,
+        std: l.std ?? "",
+        actual: l.actual ?? ""
+      }));
+      $("machineCount").value = totalMachineCount(machineRows);
+      renderMachineTable();
+      renderLoaderTable();
+      latestReport = null;
+      $("resultPanel").classList.add("hidden");
+      $("errorPanel").classList.add("hidden");
+    }
+
+    function inferProcessFromMachine(machine) {
+      const text = String(machine || "");
+      const match = text.match(/OP\d+/i);
+      return match ? match[0].toUpperCase() : text || "OP";
+    }
+
+    function inferLoaderName(l, i) {
+      if (l.name) return l.name;
+      if (l.from && l.to) return `${l.from} → ${l.to}`;
+      if (l.id) return l.id;
+      return `Loader ${i + 1}`;
+    }
+
+    function inferLoaderFromTo(l, i) {
+      if (l.from || l.to) return { from: l.from || "", to: l.to || "" };
+      const name = l.name || "";
+      if (name.includes("→")) {
+        const parts = name.split("→");
+        return { from: parts[0].trim(), to: parts.slice(1).join("→").trim() };
+      }
+      const generated = buildDefaultLoaderRowsFromMachineRows(machineRows);
+      return generated[i] ? { from: generated[i].from, to: generated[i].to } : { from: "", to: "" };
+    }
+
+    function saveToBrowser() {
+      localStorage.setItem("cycleTimeAnalyzerFlexibleBufferInput", JSON.stringify(collectInputState()));
+      alert("บันทึกข้อมูลลง Browser เรียบร้อยแล้ว");
+    }
+
+    function loadFromBrowser() {
+      const raw = localStorage.getItem("cycleTimeAnalyzerFlexibleBufferInput") || localStorage.getItem("cycleTimeAnalyzerInput");
+      if (!raw) {
+        alert("ยังไม่มีข้อมูลที่บันทึกไว้ใน Browser นี้");
+        return;
+      }
+      try {
+        applyInputState(JSON.parse(raw));
+        alert("โหลดข้อมูลเรียบร้อยแล้ว");
+      } catch (err) {
+        alert("โหลดข้อมูลไม่ได้: " + err.message);
+      }
+    }
+
+    function downloadText(filename, content, mime = "text/plain;charset=utf-8") {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportInputJson() {
+      const now = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      downloadText(`cycle-time-parallel-detail-buffer-input-${now}.json`, JSON.stringify(collectInputState(), null, 2), "application/json;charset=utf-8");
+    }
+
+    function importInputJson(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          applyInputState(JSON.parse(reader.result));
+          alert("Import JSON เรียบร้อยแล้ว");
+        } catch (err) {
+          alert("Import ไม่สำเร็จ: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function exportReportCsv() {
+      if (!latestReport) return;
+      const r = latestReport;
+      const rows = [];
+      rows.push(["Section", "Item", "Type", "MachineType", "Std (min)", "Actual (min)", "Diff (min)", "VariancePct", "OutputHr (pcs/hr)", "Status", "Advice"]);
+      rows.push(["Summary", "Neck", r.neck.name, "", r.lineStdCT, r.lineActualCT, r.lossMinPerPc, r.lineEff, r.outputPerHour, "", ""]);
+      r.resources.forEach(res => rows.push(["Process Capacity", res.name, res.type, res.machineTypes ? res.machineTypes.join(" / ") : "Loader", res.stdCT, res.actualCT, res.actualCT - res.stdCT, (res.actualCT - res.stdCT) / res.stdCT * 100, 60 / res.actualCT, res.name === r.neck.name ? "NECK" : "", ""]));
+      r.machines.forEach(m => rows.push(["Machine", m.machine, m.process, m.machineType, m.std, m.actual, m.diff, m.variancePct, 60 / m.actual, m.status.label, machineAdvice(m)]));
+      r.loaders.forEach(l => rows.push(["Loader", l.name, `${l.from} -> ${l.to}`, "Loader", l.std, l.actual, l.diff, l.variancePct, 60 / l.actual, l.status.label, loaderAdvice(l)]));
+      r.balanceSummaries.forEach(b => rows.push(["Parallel Balance", b.name, "Spread", b.machineTypes.join(" / "), b.minActual, b.maxActual, b.spread, b.spreadPct, "", b.status.label, "ปรับ Balance เครื่องใน Process เดียวกัน"]));
+      r.bufferRecommendations.forEach(b => rows.push(["Buffer", b.position, b.level.label, "", "", "", "", b.score, "", b.suggestedPcs ? `${b.suggestedPcs} pcs` : "", b.reasons.join("; ")]));
+      r.machineTypeSummary.forEach(t => rows.push(["Machine Type", t.type, "", t.type, "", "", t.totalLoss, t.avgVariance, "", t.status.label, t.worst ? `Worst: ${t.worst.machine}` : ""]));
+      const csv = rows.map(row => row.map(csvCell).join(",")).join("\n");
+      const now = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      downloadText(`cycle-time-parallel-detail-buffer-report-${now}.csv`, "\uFEFF" + csv, "text/csv;charset=utf-8");
+    }
+
+    function csvCell(value) {
+      if (value === null || value === undefined) return "";
+      const text = String(value);
+      if (/[",\n]/.test(text)) return `"${text.replaceAll('"', '""')}"`;
+      return text;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderMachineTable();
+      renderLoaderTable();
+      document.addEventListener("input", (ev) => {
+        if (ev.target && (ev.target.matches("input") || ev.target.matches("select"))) updateInlineStatus();
+      });
+      document.addEventListener("change", (ev) => {
+        if (ev.target && (ev.target.classList.contains("format-select") || ev.target.classList.contains("parallel-count"))) {
+          syncMachineRowsFromInputs();
+          renderMachineTable();
+          latestReport = null;
+          return;
+        }
+        if (ev.target && (ev.target.matches("input") || ev.target.matches("select"))) updateInlineStatus();
+      });
+      $("applyCountBtn").addEventListener("click", adjustMachineCount);
+      $("addMachineRowBtn").addEventListener("click", addMachineRow);
+      $("addLoaderRowBtn").addEventListener("click", addLoaderRow);
+      $("buildLoaderBtn").addEventListener("click", buildLoaderFromProcessesKeepTimes);
+      $("analyzeBtn").addEventListener("click", analyze);
+      $("demoBtn").addEventListener("click", fillDemoData);
+      $("clearBtn").addEventListener("click", clearTimes);
+      $("saveBtn").addEventListener("click", saveToBrowser);
+      $("loadBtn").addEventListener("click", loadFromBrowser);
+      $("exportInputBtn").addEventListener("click", exportInputJson);
+      $("exportCsvBtn").addEventListener("click", exportReportCsv);
+      $("printBtn").addEventListener("click", () => window.print());
+      $("importInputFile").addEventListener("change", (ev) => {
+        const file = ev.target.files && ev.target.files[0];
+        if (file) importInputJson(file);
+        ev.target.value = "";
+      });
+      updateInlineStatus();
+    });
+  </script>
+</body>
+</html>
